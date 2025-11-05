@@ -1,0 +1,74 @@
+/* English Localization */
+
+/* App Name */
+"app.name" = "Parquet View";
+
+/* Menu Items */
+"menu.file" = "File";
+"menu.open" = "Open...";
+"menu.export" = "Export CSV...";
+"menu.close" = "Close";
+
+/* Buttons */
+"button.open_file" = "Open File";
+"button.export_csv" = "Export CSV";
+"button.settings" = "Settings";
+"button.done" = "Done";
+"button.retry" = "Retry";
+"button.clear" = "Clear";
+
+/* Welcome Screen */
+"welcome.title" = "Welcome to Parquet View";
+"welcome.subtitle" = "Open a Parquet or CSV file to get started";
+"welcome.drag_drop" = "or drag and drop a file here";
+
+/* File Info */
+"fileinfo.title" = "Current File";
+"fileinfo.name" = "Name";
+"fileinfo.size" = "Size";
+"fileinfo.columns" = "Columns";
+"fileinfo.rows" = "Rows";
+
+/* Recent Files */
+"recent.title" = "Recent Files";
+
+/* Search */
+"search.placeholder" = "Search...";
+
+/* Loading */
+"loading.message" = "Loading Parquet file...";
+
+/* Error */
+"error.title" = "Error";
+"error.no_file" = "No file loaded";
+"error.no_connection" = "No database connection";
+"error.failed_to_load" = "Failed to load file";
+
+/* Settings */
+"settings.title" = "Settings";
+"settings.appearance" = "Appearance";
+"settings.theme" = "Theme";
+"settings.theme.auto" = "Auto";
+"settings.theme.light" = "Light";
+"settings.theme.dark" = "Dark";
+"settings.ui_scale" = "UI Scale";
+"settings.language" = "Language";
+"settings.language.title" = "Display Language";
+"settings.language.auto" = "Auto (System)";
+"settings.language.english" = "English";
+"settings.language.chinese" = "????";
+"settings.performance" = "Performance";
+"settings.max_rows" = "Max Rows to Load";
+"settings.max_rows_description" = "Higher values may impact performance";
+"settings.about" = "About";
+"settings.version" = "Version";
+"settings.build" = "Build";
+
+/* Export */
+"export.success.title" = "Export Successful";
+"export.success.message" = "Data exported to %@";
+"export.failed.title" = "Export Failed";
+
+/* Alerts */
+"alert.ok" = "OK";
+"alert.cancel" = "Cancel";
