@@ -68,11 +68,17 @@ struct ParquetTableView: NSViewRepresentable {
         // Configure row numbers table
         rowNumbersTable.dataSource = context.coordinator
         rowNumbersTable.delegate = context.coordinator
-        rowNumbersTable.headerView = NSTableHeaderView()
+        let rowHeaderView = ClickableTableHeaderView()
+        rowHeaderView.onHeaderClick = { [weak coordinator = context.coordinator] in
+            coordinator?.copyColumnNames()
+        }
+        rowNumbersTable.headerView = rowHeaderView
         rowNumbersTable.usesAlternatingRowBackgroundColors = true
         rowNumbersTable.intercellSpacing = NSSize(width: 1, height: 1)
         rowNumbersTable.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
         rowNumbersTable.backgroundColor = NSColor.controlBackgroundColor
+        rowNumbersTable.allowsColumnSelection = false
+        rowNumbersTable.allowsEmptySelection = false
         
         // Create data table (scrollable)
         let dataTable = NSTableView()
@@ -301,6 +307,102 @@ struct ParquetTableView: NSViewRepresentable {
             return 28 // Match SwiftUI version row height
         }
         
+        // MARK: - Selection & Context Menu
+        
+        func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+            return true
+        }
+        
+        // Click handling for row selection
+        func tableViewSelectionDidChange(_ notification: Notification) {
+            guard let tableView = notification.object as? NSTableView else { return }
+            
+            // Sync selection between row numbers and data table
+            if tableView == rowNumbersTable, let dataTable = dataTable {
+                dataTable.selectRowIndexes(tableView.selectedRowIndexes, byExtendingSelection: false)
+            } else if tableView == dataTable, let rowNumbersTable = rowNumbersTable {
+                rowNumbersTable.selectRowIndexes(tableView.selectedRowIndexes, byExtendingSelection: false)
+            }
+        }
+        
+        // Right-click menu for data table
+        func tableView(_ tableView: NSTableView, menuFor event: NSEvent) -> NSMenu? {
+            let menu = NSMenu()
+            
+            let clickedRow = tableView.row(at: tableView.convert(event.locationInWindow, from: nil))
+            let clickedColumn = tableView.column(at: tableView.convert(event.locationInWindow, from: nil))
+            
+            // If clicked outside selection, select the clicked cell
+            if clickedRow >= 0 && clickedColumn >= 0 {
+                if !tableView.selectedRowIndexes.contains(clickedRow) {
+                    tableView.selectRowIndexes(IndexSet(integer: clickedRow), byExtendingSelection: false)
+                }
+            }
+            
+            // Copy menu item
+            let copyItem = NSMenuItem(title: "Copy", action: #selector(copySelection), keyEquivalent: "")
+            copyItem.target = self
+            menu.addItem(copyItem)
+            
+            return menu
+        }
+        
+        // Handle header click for column selection
+        func tableView(_ tableView: NSTableView, mouseDownInHeaderOf tableColumn: NSTableColumn) {
+            guard tableView == dataTable else { return }
+            
+            // Select entire column
+            tableView.selectColumnIndexes(IndexSet(integer: tableView.column(withIdentifier: tableColumn.identifier)), byExtendingSelection: false)
+        }
+        
+        @objc func copySelection() {
+            guard let dataTable = dataTable else { return }
+            
+            let selectedRows = dataTable.selectedRowIndexes
+            let selectedColumns = dataTable.selectedColumnIndexes
+            
+            var textToCopy = ""
+            
+            if selectedColumns.count > 0 {
+                // Copy selected columns
+                for columnIndex in selectedColumns.sorted() {
+                    guard columnIndex < columns.count else { continue }
+                    
+                    // Copy column name first
+                    textToCopy += columns[columnIndex] + "\n"
+                    
+                    // Copy all rows in this column
+                    for rowIndex in 0..<rows.count {
+                        if rowIndex < rows.count && columnIndex < rows[rowIndex].count {
+                            textToCopy += rows[rowIndex][columnIndex] + "\n"
+                        }
+                    }
+                    textToCopy += "\n"
+                }
+            } else if selectedRows.count > 0 {
+                // Copy selected rows
+                for rowIndex in selectedRows.sorted() {
+                    guard rowIndex < rows.count else { continue }
+                    let rowData = rows[rowIndex].joined(separator: "\t")
+                    textToCopy += rowData + "\n"
+                }
+            }
+            
+            // Copy to clipboard
+            if !textToCopy.isEmpty {
+                let pasteboard = NSPasteboard.general
+                pasteboard.clearContents()
+                pasteboard.setString(textToCopy, forType: .string)
+            }
+        }
+        
+        func copyColumnNames() {
+            let columnNames = columns.joined(separator: "\t")
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(columnNames, forType: .string)
+        }
+        
         // MARK: - Scroll Synchronization
         
         @objc func dataTableDidScroll(_ notification: Notification) {
@@ -343,6 +445,32 @@ class FreezeTableContainerView: NSView {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+}
+
+// MARK: - Clickable Table Header View
+
+class ClickableTableHeaderView: NSTableHeaderView {
+    var onHeaderClick: (() -> Void)?
+    
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        if bounds.contains(point) {
+            onHeaderClick?()
+        }
+        super.mouseDown(with: event)
+    }
+    
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = NSMenu()
+        let copyItem = NSMenuItem(title: "Copy Column Names", action: #selector(copyHeaderAction), keyEquivalent: "")
+        copyItem.target = self
+        menu.addItem(copyItem)
+        return menu
+    }
+    
+    @objc func copyHeaderAction() {
+        onHeaderClick?()
     }
 }
 
