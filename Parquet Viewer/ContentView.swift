@@ -6,11 +6,22 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var dbManager = DuckDBManager()
+    @StateObject private var tabManager = TabManager()
     @State private var selectedFile: URL?
     @State private var searchText = ""
     @State private var showingSettings = false
+    @State private var showingJumpDialog = false
+    @State private var jumpToRowNumber = ""
+    @State private var jumpRowCount = "1000"
     @AppStorage("recentFiles") private var recentFilesData: Data = Data()
     @FocusState private var isSearchFocused: Bool
+    
+    // Zoom state
+    @State private var currentZoom: CGFloat = 1.0
+    @State private var steadyZoom: CGFloat = 1.0
+    @State private var scrollOffset: CGSize = .zero
+    private let minZoom: CGFloat = 0.5
+    private let maxZoom: CGFloat = 3.0
     
     private var recentFiles: [URL] {
         (try? JSONDecoder().decode([URL].self, from: recentFilesData)) ?? []
@@ -22,22 +33,41 @@ struct ContentView: View {
             sidebarView
                 .frame(minWidth: 220)
         } detail: {
-            // Main content
-            detailView
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Main content with optional tab bar
+            VStack(spacing: 0) {
+                // Tab bar (Pro only)
+                if FeatureFlags.tabsEnabled && !tabManager.tabs.isEmpty {
+                    TabBarView(tabManager: tabManager)
+                    Divider()
+                }
+                
+                // Content area
+                detailView
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .navigationTitle("Parquet Viewer")
+        .navigationTitle(FeatureFlags.appName)
         .onAppear {
             setupNotifications()
+            setupTabNotifications()
             enableFullScreen()
+        }
+        .onChange(of: tabManager.selectedTabID) { newValue in
+            // When tab changes, load the corresponding file
+            if let currentTab = tabManager.currentTab, let fileURL = currentTab.fileURL {
+                selectedFile = fileURL
+                Task {
+                    await dbManager.loadParquet(url: fileURL)
+                }
+            } else {
+                // Empty tab, show welcome screen
+                selectedFile = nil
+                dbManager.clearData()
+            }
         }
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
-                Button {
-                    openFile()
-                } label: {
-                    Label("Open", systemImage: "folder")
-                }
+                Spacer()
                 
                 if !dbManager.rows.isEmpty {
                     Menu {
@@ -70,6 +100,24 @@ struct ContentView: View {
         .sheet(isPresented: $showingSettings) {
             SettingsView()
         }
+        .sheet(isPresented: $showingJumpDialog) {
+            JumpToRowDialog(
+                jumpToRowNumber: $jumpToRowNumber,
+                jumpRowCount: $jumpRowCount,
+                totalRows: dbManager.totalRowCount,
+                onJump: {
+                    if let rowNum = Int(jumpToRowNumber), let rowCount = Int(jumpRowCount) {
+                        Task {
+                            await dbManager.jumpToRow(rowNum, rowsToLoad: rowCount)
+                        }
+                        showingJumpDialog = false
+                    }
+                },
+                onCancel: {
+                    showingJumpDialog = false
+                }
+            )
+        }
     }
     
     // MARK: - Sidebar View
@@ -94,6 +142,20 @@ struct ContentView: View {
                 FileInfoSection(info: info, totalRows: dbManager.totalRowCount)
             }
             
+            // Open File Button
+            Button {
+                openFile()
+            } label: {
+                HStack {
+                    Image(systemName: "folder")
+                    Text("Open")
+                    Spacer()
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .frame(maxWidth: .infinity)
+            
             // Recent Files
             if !recentFiles.isEmpty {
                 Divider()
@@ -103,39 +165,6 @@ struct ContentView: View {
             }
             
             Spacer()
-            
-            // Actions
-            VStack(spacing: 8) {
-                Button {
-                    openFile()
-                } label: {
-                    Label("Open File", systemImage: "folder")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                
-                if !dbManager.rows.isEmpty {
-                    Menu {
-                        Button {
-                            exportCSV()
-                        } label: {
-                            Label("Export as CSV", systemImage: "doc.text")
-                        }
-                        
-                        Button {
-                            exportParquet()
-                        } label: {
-                            Label("Export as Parquet", systemImage: "doc.badge.gearshape")
-                        }
-                    } label: {
-                        Label("Export", systemImage: "square.and.arrow.up")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
-                }
-            }
         }
         .padding()
     }
@@ -156,29 +185,52 @@ struct ContentView: View {
                 WelcomeView(onOpen: openFile)
             } else {
                 VStack(spacing: 0) {
-                    // Search bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                        TextField("Search...", text: $searchText)
-                            .textFieldStyle(.plain)
-                            .focused($isSearchFocused)
-                            .onSubmit {
-                                Task {
-                                    await dbManager.filterData(searchText: searchText)
+                    // Search and Navigation bar
+                    HStack(spacing: 12) {
+                        // Search
+                        HStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(.secondary)
+                            TextField("Search...", text: $searchText)
+                                .textFieldStyle(.plain)
+                                .focused($isSearchFocused)
+                                .onSubmit {
+                                    Task {
+                                        await dbManager.filterData(searchText: searchText)
+                                    }
                                 }
+                            if !searchText.isEmpty {
+                                Button {
+                                    searchText = ""
+                                    Task {
+                                        await dbManager.filterData(searchText: "")
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                                .buttonStyle(.plain)
                             }
-                        if !searchText.isEmpty {
+                        }
+                        .frame(maxWidth: .infinity)
+                        
+                        // Row info and jump button
+                        if dbManager.totalRowCount > 1000 {
+                            Divider()
+                                .frame(height: 20)
+                            
+                            Text("Rows \(dbManager.currentStartRow + 1)-\(dbManager.currentStartRow + dbManager.displayedRowCount) of \(dbManager.totalRowCount)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize()
+                            
                             Button {
-                                searchText = ""
-                                Task {
-                                    await dbManager.filterData(searchText: "")
-                                }
+                                showingJumpDialog = true
                             } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.secondary)
+                                Image(systemName: "arrow.up.arrow.down")
                             }
-                            .buttonStyle(.plain)
+                            .help("Jump to row...")
+                            .buttonStyle(.borderless)
                         }
                     }
                     .padding(8)
@@ -186,14 +238,37 @@ struct ContentView: View {
                     
                     Divider()
                     
-                    // Data table - ???
-                    DataTableView(
-                        columns: dbManager.columns,
-                        rows: dbManager.rows,
-                        isLoadingMore: false,
-                        hasMoreData: false,
-                        onLoadMore: {}
-                    )
+                    // Data table - ???????? ZoomableScrollView
+                    Group {
+                        if FeatureFlags.zoomEnabled {
+                            DataTableView(
+                                columns: dbManager.columns,
+                                rows: dbManager.rows,
+                                isLoadingMore: false,
+                                hasMoreData: false,
+                                onLoadMore: {}
+                            )
+                            .scaleEffect(currentZoom, anchor: .center)
+                            .gesture(
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        let newZoom = steadyZoom * value
+                                        currentZoom = min(max(newZoom, minZoom), maxZoom)
+                                    }
+                                    .onEnded { _ in
+                                        steadyZoom = currentZoom
+                                    }
+                            )
+                        } else {
+                            DataTableView(
+                                columns: dbManager.columns,
+                                rows: dbManager.rows,
+                                isLoadingMore: false,
+                                hasMoreData: false,
+                                onLoadMore: {}
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -220,6 +295,27 @@ struct ContentView: View {
     private func loadFile(url: URL) {
         selectedFile = url
         addToRecentFiles(url)
+        
+        // Handle tabs if Pro version
+        if FeatureFlags.tabsEnabled {
+            // Check if current tab is empty (Untitled)
+            if let currentTab = tabManager.currentTab, currentTab.fileURL == nil {
+                // Update the current empty tab instead of creating new one
+                _ = tabManager.updateCurrentTab(fileURL: url)
+            } else {
+                // Create new tab
+                if !tabManager.addTab(fileURL: url) {
+                    // Show alert if tab limit reached
+                    let alert = NSAlert()
+                    alert.messageText = "Tab Limit Reached"
+                    alert.informativeText = "Maximum \(tabManager.maxTabs) tabs allowed. Close some tabs or increase the limit in Settings."
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                    return
+                }
+            }
+        }
         
         Task {
             await dbManager.loadParquet(url: url)
@@ -326,6 +422,153 @@ struct ContentView: View {
             if !dbManager.rows.isEmpty {
                 isSearchFocused = true
             }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .zoomIn,
+            object: nil,
+            queue: .main
+        ) { _ in
+            zoomIn()
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .zoomOut,
+            object: nil,
+            queue: .main
+        ) { _ in
+            zoomOut()
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .zoomReset,
+            object: nil,
+            queue: .main
+        ) { _ in
+            zoomReset()
+        }
+    }
+    
+    private func setupTabNotifications() {
+        guard FeatureFlags.tabsEnabled else { return }
+        
+        NotificationCenter.default.addObserver(
+            forName: .openFileFromTab,
+            object: nil,
+            queue: .main
+        ) { _ in
+            openFile()
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .createEmptyTab,
+            object: nil,
+            queue: .main
+        ) { [weak tabManager] _ in
+            Task { @MainActor in
+                guard let tabManager = tabManager else { return }
+                
+                // Create empty tab in tab manager
+                if tabManager.addEmptyTab() {
+                    // Clear current file to show welcome screen
+                    selectedFile = nil
+                    dbManager.clearData()
+                }
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .closeCurrentTab,
+            object: nil,
+            queue: .main
+        ) { [weak tabManager] _ in
+            Task { @MainActor in
+                guard let tabManager = tabManager else { return }
+                if let selectedID = tabManager.selectedTabID {
+                    tabManager.closeTab(id: selectedID)
+                }
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .closeOtherTabs,
+            object: nil,
+            queue: .main
+        ) { [weak tabManager] notification in
+            Task { @MainActor in
+                guard let tabManager = tabManager else { return }
+                if let tabID = notification.userInfo?["tabID"] as? UUID {
+                    tabManager.closeOtherTabs(except: tabID)
+                } else if let selectedID = tabManager.selectedTabID {
+                    tabManager.closeOtherTabs(except: selectedID)
+                }
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .closeAllTabs,
+            object: nil,
+            queue: .main
+        ) { [weak tabManager] _ in
+            Task { @MainActor in
+                tabManager?.closeAllTabs()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .nextTab,
+            object: nil,
+            queue: .main
+        ) { [weak tabManager] _ in
+            Task { @MainActor in
+                tabManager?.selectNextTab()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .previousTab,
+            object: nil,
+            queue: .main
+        ) { [weak tabManager] _ in
+            Task { @MainActor in
+                tabManager?.selectPreviousTab()
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: .selectTab,
+            object: nil,
+            queue: .main
+        ) { [weak tabManager] notification in
+            Task { @MainActor in
+                guard let tabManager = tabManager,
+                      let index = notification.userInfo?["index"] as? Int,
+                      index < tabManager.tabs.count else { return }
+                tabManager.selectTab(id: tabManager.tabs[index].id)
+            }
+        }
+    }
+    
+    // MARK: - Zoom Functions
+    
+    private func zoomIn() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            currentZoom = min(currentZoom * 1.2, maxZoom)
+            steadyZoom = currentZoom
+        }
+    }
+    
+    private func zoomOut() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            currentZoom = max(currentZoom / 1.2, minZoom)
+            steadyZoom = currentZoom
+        }
+    }
+    
+    private func zoomReset() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            currentZoom = 1.0
+            steadyZoom = 1.0
         }
     }
     
@@ -465,7 +708,7 @@ struct LoadingView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
-            Text("Loading Parquet file...")
+            Text("Loading...")
                 .font(.headline)
                 .foregroundColor(.secondary)
         }

@@ -29,6 +29,15 @@ struct ParquetViewApp: App {
                 
                 Divider()
                 
+                if FeatureFlags.tabsEnabled {
+                    Button("Close Tab") {
+                        NotificationCenter.default.post(name: .closeCurrentTab, object: nil)
+                    }
+                    .keyboardShortcut("w", modifiers: .command)
+                    
+                    Divider()
+                }
+                
                 Button("Export as CSV...") {
                     NotificationCenter.default.post(name: .exportCSV, object: nil)
                 }
@@ -55,10 +64,113 @@ struct ParquetViewApp: App {
                     NSApp.keyWindow?.firstResponder?.tryToPerform(#selector(NSSplitViewController.toggleSidebar(_:)), with: nil)
                 }
                 .keyboardShortcut("s", modifiers: [.command, .control])
+                
+                Divider()
+                
+                Button("Zoom In") {
+                    NotificationCenter.default.post(name: .zoomIn, object: nil)
+                }
+                .keyboardShortcut("+", modifiers: .command)
+                
+                Button("Zoom Out") {
+                    NotificationCenter.default.post(name: .zoomOut, object: nil)
+                }
+                .keyboardShortcut("-", modifiers: .command)
+                
+                Button("Actual Size") {
+                    NotificationCenter.default.post(name: .zoomReset, object: nil)
+                }
+                .keyboardShortcut("0", modifiers: [.command, .option])
+            }
+            
+            // Tab menu (when tabs enabled)
+            if FeatureFlags.tabsEnabled {
+                CommandMenu("Tab") {
+                    Button("New Tab") {
+                        NotificationCenter.default.post(name: .createEmptyTab, object: nil)
+                    }
+                    .keyboardShortcut("t", modifiers: .command)
+                    
+                    Divider()
+                    
+                    Button("Close Other Tabs") {
+                        NotificationCenter.default.post(name: .closeOtherTabs, object: nil)
+                    }
+                    
+                    Button("Close All Tabs") {
+                        NotificationCenter.default.post(name: .closeAllTabs, object: nil)
+                    }
+                    .keyboardShortcut("w", modifiers: [.command, .option])
+                    
+                    Divider()
+                    
+                    Button("Next Tab") {
+                        NotificationCenter.default.post(name: .nextTab, object: nil)
+                    }
+                    .keyboardShortcut("]", modifiers: [.command, .shift])
+                    
+                    Button("Previous Tab") {
+                        NotificationCenter.default.post(name: .previousTab, object: nil)
+                    }
+                    .keyboardShortcut("[", modifiers: [.command, .shift])
+                    
+                    Divider()
+                    
+                    // Cmd+1 to Cmd+9 for tabs 1-9, Cmd+0 for tab 10
+                    Button("Select Tab 1") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 0])
+                    }
+                    .keyboardShortcut("1", modifiers: .command)
+                    
+                    Button("Select Tab 2") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 1])
+                    }
+                    .keyboardShortcut("2", modifiers: .command)
+                    
+                    Button("Select Tab 3") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 2])
+                    }
+                    .keyboardShortcut("3", modifiers: .command)
+                    
+                    Button("Select Tab 4") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 3])
+                    }
+                    .keyboardShortcut("4", modifiers: .command)
+                    
+                    Button("Select Tab 5") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 4])
+                    }
+                    .keyboardShortcut("5", modifiers: .command)
+                    
+                    Button("Select Tab 6") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 5])
+                    }
+                    .keyboardShortcut("6", modifiers: .command)
+                    
+                    Button("Select Tab 7") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 6])
+                    }
+                    .keyboardShortcut("7", modifiers: .command)
+                    
+                    Button("Select Tab 8") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 7])
+                    }
+                    .keyboardShortcut("8", modifiers: .command)
+                    
+                    Button("Select Tab 9") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 8])
+                    }
+                    .keyboardShortcut("9", modifiers: .command)
+                    
+                    Button("Select Tab 10") {
+                        NotificationCenter.default.post(name: .selectTab, object: nil, userInfo: ["index": 9])
+                    }
+                    .keyboardShortcut("0", modifiers: .command)
+                }
             }
             
             CommandGroup(after: .help) {
-                Button("About Parquet View") {
+                Button("About \(FeatureFlags.appName)") {
                     NSApp.orderFrontStandardAboutPanel(nil)
                 }
             }
@@ -84,6 +196,9 @@ extension Notification.Name {
     static let exportCSV = Notification.Name("exportCSV")
     static let exportParquet = Notification.Name("exportParquet")
     static let focusSearch = Notification.Name("focusSearch")
+    static let zoomIn = Notification.Name("zoomIn")
+    static let zoomOut = Notification.Name("zoomOut")
+    static let zoomReset = Notification.Name("zoomReset")
 }
 
 // AppDelegate to ensure app appears in Dock and Cmd+Tab
@@ -92,5 +207,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Set activation policy to regular app (appears in Dock)
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+    }
+    
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // Show confirmation dialog before quitting (Cmd+Q)
+        let alert = NSAlert()
+        alert.messageText = "Quit \(FeatureFlags.appName)?"
+        alert.informativeText = "Are you sure you want to quit? All open tabs will be closed."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Quit")
+        alert.addButton(withTitle: "Cancel")
+        
+        let response = alert.runModal()
+        return response == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+    }
+    
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        // Don't quit when last window is closed (Cmd+W behavior)
+        return false
     }
 }

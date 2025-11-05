@@ -9,6 +9,9 @@ struct SettingsView: View {
     @AppStorage("language") private var language: Language = .english
     @AppStorage("maxRows") private var maxRows: Int = 1000
     @AppStorage("uiScale") private var uiScale: Double = 1.0
+    @AppStorage("maxTabs") private var maxTabs: Int = DefaultSettings.maxTabCount
+    @AppStorage("tabsEnabled") private var tabsEnabled: Bool = true
+    @AppStorage("zoomEnabled") private var zoomEnabled: Bool = true
     
     @Environment(\.dismiss) private var dismiss
     
@@ -63,8 +66,33 @@ struct SettingsView: View {
                         .foregroundColor(.secondary)
                 }
                 
+                // Feature toggles
+                Section("Features") {
+                    Toggle("Enable Multiple Tabs", isOn: $tabsEnabled)
+                    
+                    if tabsEnabled {
+                        Stepper("Maximum Tabs: \(maxTabs)", 
+                                value: $maxTabs, 
+                                in: DefaultSettings.minTabCount...DefaultSettings.maxTabCountLimit, 
+                                step: 1)
+                        
+                        Text("Maximum number of tabs that can be opened simultaneously")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Divider()
+                    
+                    Toggle("Enable Zoom", isOn: $zoomEnabled)
+                    
+                    Text("Allow pinch-to-zoom and Cmd+/- shortcuts")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
                 Section("About") {
-                    LabeledContent("Version", value: "1.0.0")
+                    LabeledContent("Version", value: FeatureFlags.versionString)
+                    LabeledContent("App", value: FeatureFlags.appName)
                     LabeledContent("Build", value: "Swift + DuckDB")
                     
                     Link("GitHub Repository", destination: URL(string: "https://github.com/yourusername/parquet-viewer")!)

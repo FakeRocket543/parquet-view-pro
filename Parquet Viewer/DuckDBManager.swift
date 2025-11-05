@@ -17,6 +17,7 @@ class DuckDBManager: ObservableObject {
     @Published var totalRowCount: Int = 0
     @Published var displayedRowCount: Int = 0
     @Published var fileInfo: FileInfo?
+    @Published var currentStartRow: Int = 0
     
     // MARK: - Private Properties
     
@@ -61,8 +62,20 @@ class DuckDBManager: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Load a Parquet file with optional row limit
-    func loadParquet(url: URL, limit: Int? = nil) async {
+    /// Clear all data and return to empty state
+    func clearData() {
+        columns = []
+        rows = []
+        errorMessage = nil
+        totalRowCount = 0
+        displayedRowCount = 0
+        fileInfo = nil
+        currentStartRow = 0
+        currentFileURL = nil
+    }
+    
+    /// Load a Parquet file with optional row limit and offset
+    func loadParquet(url: URL, limit: Int? = nil, offset: Int? = nil) async {
         await MainActor.run {
             isLoading = true
             errorMessage = nil
@@ -86,31 +99,42 @@ class DuckDBManager: ObservableObject {
             
             // Determine file type and use appropriate DuckDB function
             let fileExtension = url.pathExtension.lowercased()
-            let readFunction: String
+            let countQuery: String
+            let dataQuery: String
+            let startOffset = offset ?? 0
+            
             switch fileExtension {
             case "csv":
-                readFunction = "read_csv"
+                // CSV: Use read_csv_auto with proper syntax
+                countQuery = "SELECT COUNT(*) as count FROM read_csv_auto('\(path)')"
+                dataQuery = """
+                    SELECT * FROM read_csv_auto('\(path)')
+                    LIMIT \(rowLimit) OFFSET \(startOffset)
+                """
             case "parquet":
-                readFunction = "read_parquet"
+                // Parquet: Use read_parquet
+                countQuery = "SELECT COUNT(*) as count FROM read_parquet('\(path)')"
+                dataQuery = """
+                    SELECT * FROM read_parquet('\(path)')
+                    LIMIT \(rowLimit) OFFSET \(startOffset)
+                """
             default:
-                readFunction = "read_parquet"
+                // Default to parquet
+                countQuery = "SELECT COUNT(*) as count FROM read_parquet('\(path)')"
+                dataQuery = """
+                    SELECT * FROM read_parquet('\(path)')
+                    LIMIT \(rowLimit) OFFSET \(startOffset)
+                """
             }
             
             // Get total row count
-            let countQuery = "SELECT COUNT(*) as count FROM \(readFunction)('\(path)')"
             print("?? Executing count query...")
             let countResult = try conn.query(countQuery)
             
             // FIXED: Use DuckDB 1.1.3 API
             let countColumn = countResult.column(at: 0).cast(to: Int64.self)
             let totalRows = Int(countColumn[0] ?? 0)
-            
-            // Get data with limit
-            let dataQuery = """
-                SELECT * FROM \(readFunction)('\(path)')
-                LIMIT \(rowLimit)
-            """
-            print("?? Loading data (limit: \(rowLimit))...")
+            print("?? Loading data (offset: \(startOffset), limit: \(rowLimit))...")
             let dataResult = try conn.query(dataQuery)
             
             // Parse columns - FIXED: Use DuckDB 1.1.3 API
@@ -156,6 +180,7 @@ class DuckDBManager: ObservableObject {
                 self.totalRowCount = finalRowCount
                 self.displayedRowCount = finalDisplayCount
                 self.fileInfo = finalInfo
+                self.currentStartRow = startOffset
                 self.isLoading = false
             }
             
@@ -216,27 +241,54 @@ class DuckDBManager: ObservableObject {
         let sourcePath = fileURL.path.replacingOccurrences(of: "'", with: "''")
         let destPath = url.path.replacingOccurrences(of: "'", with: "''")
         
-        // Determine source file type
+        // Determine source file type and build read query
         let fileExtension = fileURL.pathExtension.lowercased()
-        let readFunction = (fileExtension == "csv") ? "read_csv" : "read_parquet"
+        let readQuery: String
+        switch fileExtension {
+        case "csv":
+            readQuery = "SELECT * FROM read_csv_auto('\(sourcePath)')"
+        case "parquet":
+            readQuery = "SELECT * FROM read_parquet('\(sourcePath)')"
+        default:
+            readQuery = "SELECT * FROM read_parquet('\(sourcePath)')"
+        }
         
         // Build export query based on format
         let exportQuery: String
         switch format {
         case .csv:
             exportQuery = """
-                COPY (SELECT * FROM \(readFunction)('\(sourcePath)'))
+                COPY (\(readQuery))
                 TO '\(destPath)' (HEADER, DELIMITER ',')
             """
         case .parquet:
             exportQuery = """
-                COPY (SELECT * FROM \(readFunction)('\(sourcePath)'))
+                COPY (\(readQuery))
                 TO '\(destPath)' (FORMAT 'parquet')
             """
         }
         
         try conn.execute(exportQuery)
         print("? Exported to \(format.displayName): \(url.lastPathComponent)")
+    }
+    
+    /// Jump to specific row
+    func jumpToRow(_ rowNumber: Int, rowsToLoad: Int = 1000) async {
+        guard let fileURL = currentFileURL else { return }
+        
+        // Validate row number
+        guard rowNumber > 0 && rowNumber <= totalRowCount else {
+            await MainActor.run {
+                self.errorMessage = "Invalid row number. Must be between 1 and \(totalRowCount)"
+            }
+            return
+        }
+        
+        // Convert to 0-based offset
+        let offset = rowNumber - 1
+        
+        // Load data from specified row
+        await loadParquet(url: fileURL, limit: rowsToLoad, offset: offset)
     }
     
     /// Search/filter data
