@@ -109,6 +109,12 @@ struct ParquetTableView: NSViewRepresentable {
         dataTable.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
         dataTable.intercellSpacing = NSSize(width: 1, height: 1)
         dataTable.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
+        dataTable.target = context.coordinator
+        dataTable.doubleAction = #selector(Coordinator.tableDoubleClick(_:))
+        
+        // Enable context menu
+        dataTable.menu = NSMenu()
+        dataTable.menu?.delegate = context.coordinator
         
         // Store references in coordinator
         context.coordinator.rowNumbersTable = rowNumbersTable
@@ -178,7 +184,7 @@ struct ParquetTableView: NSViewRepresentable {
     
     // MARK: - Coordinator
     
-    class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+    class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         var columns: [String]
         var rows: [[String]]
         var hasMoreData: Bool
@@ -325,26 +331,21 @@ struct ParquetTableView: NSViewRepresentable {
             }
         }
         
-        // Right-click menu for data table
-        func tableView(_ tableView: NSTableView, menuFor event: NSEvent) -> NSMenu? {
-            let menu = NSMenu()
-            
-            let clickedRow = tableView.row(at: tableView.convert(event.locationInWindow, from: nil))
-            let clickedColumn = tableView.column(at: tableView.convert(event.locationInWindow, from: nil))
-            
-            // If clicked outside selection, select the clicked cell
-            if clickedRow >= 0 && clickedColumn >= 0 {
-                if !tableView.selectedRowIndexes.contains(clickedRow) {
-                    tableView.selectRowIndexes(IndexSet(integer: clickedRow), byExtendingSelection: false)
-                }
-            }
+        // MARK: - NSMenuDelegate
+        
+        func menuNeedsUpdate(_ menu: NSMenu) {
+            menu.removeAllItems()
             
             // Copy menu item
-            let copyItem = NSMenuItem(title: "Copy", action: #selector(copySelection), keyEquivalent: "")
+            let copyItem = NSMenuItem(title: "Copy", action: #selector(copySelection), keyEquivalent: "c")
+            copyItem.keyEquivalentModifierMask = .command
             copyItem.target = self
             menu.addItem(copyItem)
-            
-            return menu
+        }
+        
+        // Double click handler
+        @objc func tableDoubleClick(_ sender: Any) {
+            // Future: implement double-click behavior
         }
         
         // Handle header click for column selection
@@ -461,7 +462,19 @@ class ClickableTableHeaderView: NSTableHeaderView {
         super.mouseDown(with: event)
     }
     
+    override func rightMouseDown(with event: NSEvent) {
+        // Show context menu on right-click
+        let menu = NSMenu()
+        let copyItem = NSMenuItem(title: "Copy Column Names", action: #selector(copyHeaderAction), keyEquivalent: "")
+        copyItem.target = self
+        menu.addItem(copyItem)
+        
+        // Show menu at click location
+        NSMenu.popUpContextMenu(menu, with: event, for: self)
+    }
+    
     override func menu(for event: NSEvent) -> NSMenu? {
+        // Also handle regular menu requests
         let menu = NSMenu()
         let copyItem = NSMenuItem(title: "Copy Column Names", action: #selector(copyHeaderAction), keyEquivalent: "")
         copyItem.target = self
