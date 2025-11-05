@@ -238,37 +238,14 @@ struct ContentView: View {
                     
                     Divider()
                     
-                    // Data table - ???????? ZoomableScrollView
-                    Group {
-                        if FeatureFlags.zoomEnabled {
-                            DataTableView(
-                                columns: dbManager.columns,
-                                rows: dbManager.rows,
-                                isLoadingMore: false,
-                                hasMoreData: false,
-                                onLoadMore: {}
-                            )
-                            .scaleEffect(currentZoom, anchor: .center)
-                            .gesture(
-                                MagnificationGesture()
-                                    .onChanged { value in
-                                        let newZoom = steadyZoom * value
-                                        currentZoom = min(max(newZoom, minZoom), maxZoom)
-                                    }
-                                    .onEnded { _ in
-                                        steadyZoom = currentZoom
-                                    }
-                            )
-                        } else {
-                            DataTableView(
-                                columns: dbManager.columns,
-                                rows: dbManager.rows,
-                                isLoadingMore: false,
-                                hasMoreData: false,
-                                onLoadMore: {}
-                            )
-                        }
-                    }
+                    // Data table - NSTableView with native freeze pane
+                    ParquetTableView(
+                        columns: dbManager.columns,
+                        rows: dbManager.rows,
+                        onLoadMore: {},
+                        hasMoreData: false,
+                        isLoadingMore: false
+                    )
                 }
             }
         }
