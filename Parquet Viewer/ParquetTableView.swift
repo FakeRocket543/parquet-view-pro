@@ -1,12 +1,12 @@
 //
 // ParquetTableView.swift
-// NSTableView-based data table with native freeze pane support
+// NSTableView-based data table with TRUE freeze pane support
 //
 
 import SwiftUI
 import AppKit
 
-/// NSTableView wrapper providing native freeze pane functionality
+/// Custom NSTableView wrapper with freeze pane for row numbers
 struct ParquetTableView: NSViewRepresentable {
     // Data
     let columns: [String]
@@ -45,28 +45,43 @@ struct ParquetTableView: NSViewRepresentable {
         self.onCopyColumnNames = onCopyColumnNames
     }
     
-    func makeNSView(context: Context) -> NSScrollView {
-        let scrollView = NSScrollView()
-        let tableView = NSTableView()
+    func makeNSView(context: Context) -> FreezeTableContainerView {
+        let container = FreezeTableContainerView()
         
-        // Configure table view
-        tableView.dataSource = context.coordinator
-        tableView.delegate = context.coordinator
-        tableView.usesAlternatingRowBackgroundColors = true
-        tableView.allowsMultipleSelection = true
-        tableView.allowsColumnSelection = true
-        tableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
-        tableView.intercellSpacing = NSSize(width: 1, height: 1)
-        tableView.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
+        // Create row numbers table (frozen)
+        let rowNumbersTable = NSTableView()
+        let rowNumbersScrollView = NSScrollView()
+        rowNumbersScrollView.documentView = rowNumbersTable
+        rowNumbersScrollView.hasVerticalScroller = false // Synced with data table
+        rowNumbersScrollView.hasHorizontalScroller = false
+        rowNumbersScrollView.borderType = .noBorder
         
-        // Row number column (frozen)
-        let rowNumberColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("rowNumber"))
-        rowNumberColumn.title = "#"
-        rowNumberColumn.width = 60
-        rowNumberColumn.minWidth = 60
-        rowNumberColumn.maxWidth = 60
-        rowNumberColumn.resizingMask = [] // Cannot be resized
-        tableView.addTableColumn(rowNumberColumn)
+        // Row number column
+        let rowColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("rowNumber"))
+        rowColumn.title = "#"
+        rowColumn.width = 60
+        rowColumn.minWidth = 60
+        rowColumn.maxWidth = 60
+        rowColumn.resizingMask = []
+        rowNumbersTable.addTableColumn(rowColumn)
+        
+        // Configure row numbers table
+        rowNumbersTable.dataSource = context.coordinator
+        rowNumbersTable.delegate = context.coordinator
+        rowNumbersTable.headerView = NSTableHeaderView()
+        rowNumbersTable.usesAlternatingRowBackgroundColors = true
+        rowNumbersTable.intercellSpacing = NSSize(width: 1, height: 1)
+        rowNumbersTable.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
+        rowNumbersTable.backgroundColor = NSColor.controlBackgroundColor
+        
+        // Create data table (scrollable)
+        let dataTable = NSTableView()
+        let dataScrollView = NSScrollView()
+        dataScrollView.documentView = dataTable
+        dataScrollView.hasVerticalScroller = true
+        dataScrollView.hasHorizontalScroller = true
+        dataScrollView.autohidesScrollers = false
+        dataScrollView.borderType = .noBorder
         
         // Data columns
         for (index, columnName) in columns.enumerated() {
@@ -75,42 +90,70 @@ struct ParquetTableView: NSViewRepresentable {
             column.width = 150
             column.minWidth = 50
             column.maxWidth = 500
-            tableView.addTableColumn(column)
+            dataTable.addTableColumn(column)
         }
         
-        // Configure scroll view
-        scrollView.documentView = tableView
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = true
-        scrollView.autohidesScrollers = false
-        
-        // Observe scrolling for pagination
-        NotificationCenter.default.addObserver(
-            context.coordinator,
-            selector: #selector(Coordinator.scrollViewDidScroll(_:)),
-            name: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView
-        )
-        scrollView.contentView.postsBoundsChangedNotifications = true
+        // Configure data table
+        dataTable.dataSource = context.coordinator
+        dataTable.delegate = context.coordinator
+        dataTable.headerView = NSTableHeaderView()
+        dataTable.usesAlternatingRowBackgroundColors = true
+        dataTable.allowsMultipleSelection = true
+        dataTable.allowsColumnSelection = true
+        dataTable.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        dataTable.intercellSpacing = NSSize(width: 1, height: 1)
+        dataTable.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
         
         // Store references in coordinator
-        context.coordinator.tableView = tableView
-        context.coordinator.scrollView = scrollView
+        context.coordinator.rowNumbersTable = rowNumbersTable
+        context.coordinator.dataTable = dataTable
+        context.coordinator.rowNumbersScrollView = rowNumbersScrollView
+        context.coordinator.dataScrollView = dataScrollView
         
-        return scrollView
+        // Sync vertical scrolling
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.dataTableDidScroll(_:)),
+            name: NSView.boundsDidChangeNotification,
+            object: dataScrollView.contentView
+        )
+        dataScrollView.contentView.postsBoundsChangedNotifications = true
+        
+        // Layout container
+        container.addSubview(rowNumbersScrollView)
+        container.addSubview(dataScrollView)
+        
+        // Auto Layout
+        rowNumbersScrollView.translatesAutoresizingMaskIntoConstraints = false
+        dataScrollView.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            // Row numbers on the left
+            rowNumbersScrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            rowNumbersScrollView.topAnchor.constraint(equalTo: container.topAnchor),
+            rowNumbersScrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            rowNumbersScrollView.widthAnchor.constraint(equalToConstant: 60),
+            
+            // Data table on the right
+            dataScrollView.leadingAnchor.constraint(equalTo: rowNumbersScrollView.trailingAnchor),
+            dataScrollView.topAnchor.constraint(equalTo: container.topAnchor),
+            dataScrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            dataScrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        return container
     }
     
-    func updateNSView(_ nsView: NSScrollView, context: Context) {
-        guard let tableView = nsView.documentView as? NSTableView else { return }
-        
+    func updateNSView(_ nsView: FreezeTableContainerView, context: Context) {
         // Update coordinator data
         context.coordinator.columns = columns
         context.coordinator.rows = rows
         context.coordinator.hasMoreData = hasMoreData
         context.coordinator.isLoadingMore = isLoadingMore
         
-        // Reload table
-        tableView.reloadData()
+        // Reload both tables
+        context.coordinator.rowNumbersTable?.reloadData()
+        context.coordinator.dataTable?.reloadData()
     }
     
     func makeCoordinator() -> Coordinator {
@@ -140,8 +183,12 @@ struct ParquetTableView: NSViewRepresentable {
         let onCopyColumn: ((Int) -> Void)?
         let onCopyColumnNames: (() -> Void)?
         
-        weak var tableView: NSTableView?
-        weak var scrollView: NSScrollView?
+        weak var rowNumbersTable: NSTableView?
+        weak var dataTable: NSTableView?
+        weak var rowNumbersScrollView: NSScrollView?
+        weak var dataScrollView: NSScrollView?
+        
+        private var isSyncingScroll = false
         
         init(
             columns: [String],
@@ -254,21 +301,48 @@ struct ParquetTableView: NSViewRepresentable {
             return 28 // Match SwiftUI version row height
         }
         
-        // MARK: - Scrolling for Pagination
+        // MARK: - Scroll Synchronization
         
-        @objc func scrollViewDidScroll(_ notification: Notification) {
-            guard let tableView = tableView,
-                  hasMoreData,
-                  !isLoadingMore else { return }
+        @objc func dataTableDidScroll(_ notification: Notification) {
+            guard !isSyncingScroll,
+                  let dataScrollView = dataScrollView,
+                  let rowNumbersScrollView = rowNumbersScrollView else { return }
             
-            let visibleRows = tableView.rows(in: tableView.visibleRect)
-            let lastVisibleRow = visibleRows.upperBound - 1
+            isSyncingScroll = true
             
-            // Load more when near bottom (within 10 rows)
-            if lastVisibleRow >= rows.count - 10 {
-                onLoadMore()
+            // Sync vertical scroll
+            let dataOrigin = dataScrollView.contentView.bounds.origin
+            var rowNumbersOrigin = rowNumbersScrollView.contentView.bounds.origin
+            rowNumbersOrigin.y = dataOrigin.y
+            rowNumbersScrollView.contentView.scroll(to: rowNumbersOrigin)
+            rowNumbersScrollView.reflectScrolledClipView(rowNumbersScrollView.contentView)
+            
+            isSyncingScroll = false
+            
+            // Check for pagination
+            if let tableView = dataTable, hasMoreData, !isLoadingMore {
+                let visibleRows = tableView.rows(in: tableView.visibleRect)
+                let lastVisibleRow = visibleRows.upperBound - 1
+                
+                // Load more when near bottom (within 10 rows)
+                if lastVisibleRow >= rows.count - 10 {
+                    onLoadMore()
+                }
             }
         }
+    }
+}
+
+// MARK: - Container View
+
+class FreezeTableContainerView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }
 
