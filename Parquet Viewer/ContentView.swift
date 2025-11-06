@@ -304,12 +304,104 @@ struct ContentView: View {
             .init(filenameExtension: "parquet")!,
             .commaSeparatedText
         ]
-        panel.allowsMultipleSelection = false
+        panel.allowsMultipleSelection = true  // 允許多重選擇
         panel.canChooseDirectories = false
-        panel.message = "Select a Parquet or CSV file to view"
+        panel.message = FeatureFlags.tabsEnabled 
+            ? "Select one or more Parquet/CSV files to view"
+            : "Select a Parquet or CSV file to view"
         
-        if panel.runModal() == .OK, let url = panel.url {
-            loadFile(url: url)
+        if panel.runModal() == .OK {
+            let urls = panel.urls
+            
+            if urls.isEmpty { return }
+            
+            // Pro 版本: 在分頁中開啟多個檔案
+            if FeatureFlags.tabsEnabled && urls.count > 1 {
+                openMultipleFiles(urls: urls)
+            } else {
+                // 單一檔案或免費版本: 只開啟第一個檔案
+                if let url = urls.first {
+                    loadFile(url: url)
+                }
+            }
+        }
+    }
+    
+    private func openMultipleFiles(urls: [URL]) {
+        guard FeatureFlags.tabsEnabled else { return }
+        
+        var successCount = 0
+        var failedFiles: [String] = []
+        
+        for url in urls {
+            // 檢查是否達到分頁上限
+            if tabManager.tabs.count >= tabManager.maxTabs {
+                failedFiles.append(contentsOf: urls.dropFirst(successCount).map { $0.lastPathComponent })
+                break
+            }
+            
+            // 載入檔案到新分頁
+            addToRecentFiles(url)
+            
+            // 檢查當前分頁是否為空
+            if successCount == 0, let currentTab = tabManager.currentTab, currentTab.fileURL == nil {
+                // 更新當前空分頁
+                selectedFile = url
+                _ = tabManager.updateCurrentTab(fileURL: url)
+                Task {
+                    await dbManager.loadParquet(url: url)
+                }
+            } else {
+                // 創建新分頁
+                if tabManager.addTab(fileURL: url) {
+                    // 如果是最後一個檔案，切換到該分頁
+                    if url == urls.last {
+                        selectedFile = url
+                        Task {
+                            await dbManager.loadParquet(url: url)
+                        }
+                    }
+                } else {
+                    failedFiles.append(url.lastPathComponent)
+                    continue
+                }
+            }
+            
+            successCount += 1
+        }
+        
+        // 顯示結果訊息
+        if !failedFiles.isEmpty {
+            let alert = NSAlert()
+            alert.messageText = "Some Files Not Opened"
+            alert.informativeText = """
+                Successfully opened: \(successCount) file(s)
+                Failed to open: \(failedFiles.count) file(s)
+                
+                Reason: Tab limit (\(tabManager.maxTabs)) reached.
+                
+                Failed files:
+                \(failedFiles.joined(separator: "\n"))
+                
+                Tip: Increase tab limit in Settings or close some tabs.
+                """
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+        } else if successCount > 1 {
+            // 成功開啟多個檔案，顯示提示
+            let alert = NSAlert()
+            alert.messageText = "Files Opened Successfully"
+            alert.informativeText = "Successfully opened \(successCount) files in separate tabs."
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "OK")
+            
+            // 自動關閉通知（2秒後）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                NSApp.abortModal()
+            }
+            
+            alert.runModal()
         }
     }
     
