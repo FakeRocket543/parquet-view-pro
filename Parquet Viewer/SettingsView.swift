@@ -12,6 +12,7 @@ struct SettingsView: View {
     @AppStorage("maxTabs") private var maxTabs: Int = DefaultSettings.maxTabCount
     @AppStorage("tabsEnabled") private var tabsEnabled: Bool = true
     @AppStorage("zoomEnabled") private var zoomEnabled: Bool = true
+    @AppStorage("tableFontSize") private var tableFontSize: Double = 13.0
     
     @Environment(\.dismiss) private var dismiss
     
@@ -47,6 +48,40 @@ struct SettingsView: View {
                     
                     Slider(value: $uiScale, in: 0.8...1.5, step: 0.1) {
                         Text("UI Scale: \(String(format: "%.1f", uiScale))x")
+                    }
+                    
+                    Divider()
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Table Font Size: \(Int(tableFontSize)) pt")
+                            Spacer()
+                            Button("Reset") {
+                                tableFontSize = 13.0
+                            }
+                            .buttonStyle(.borderless)
+                            .font(.caption)
+                        }
+                        
+                        Slider(value: $tableFontSize, in: 9...20, step: 1)
+                        
+                        HStack {
+                            Text("9")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("13 (Default)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("20")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Text("Use Cmd +/- or Cmd 0 to adjust font size in the table")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
                 

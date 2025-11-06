@@ -17,6 +17,9 @@ struct ParquetTableView: NSViewRepresentable {
     let hasMoreData: Bool
     let isLoadingMore: Bool
     
+    // Font size from settings
+    @AppStorage("tableFontSize") private var tableFontSize: Double = 13.0
+    
     // Copy handlers
     let onCopyCell: ((Int, Int) -> Void)?
     let onCopyRow: ((Int) -> Void)?
@@ -169,6 +172,7 @@ struct ParquetTableView: NSViewRepresentable {
         context.coordinator.rows = rows
         context.coordinator.hasMoreData = hasMoreData
         context.coordinator.isLoadingMore = isLoadingMore
+        context.coordinator.fontSize = tableFontSize
         
         // Reload both tables
         context.coordinator.rowNumbersTable?.reloadData()
@@ -196,6 +200,7 @@ struct ParquetTableView: NSViewRepresentable {
         var rows: [[String]]
         var hasMoreData: Bool
         var isLoadingMore: Bool
+        var fontSize: Double = 13.0 // Font size for table cells
         let onLoadMore: () -> Void
         let onCopyCell: ((Int, Int) -> Void)?
         let onCopyRow: ((Int) -> Void)?
@@ -273,7 +278,6 @@ struct ParquetTableView: NSViewRepresentable {
                 textField.isBordered = false
                 textField.backgroundColor = .clear
                 textField.isEditable = false
-                textField.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
                 textField.lineBreakMode = .byTruncatingTail
                 textField.maximumNumberOfLines = 1
                 
@@ -288,6 +292,9 @@ struct ParquetTableView: NSViewRepresentable {
                     textField.centerYAnchor.constraint(equalTo: cellView!.centerYAnchor)
                 ])
             }
+            
+            // Apply font size (from settings)
+            cellView?.textField?.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
             
             // Set cell content
             if identifier.rawValue == "rowNumber" {

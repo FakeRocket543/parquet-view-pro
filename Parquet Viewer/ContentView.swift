@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var jumpToRowNumber = ""
     @State private var jumpRowCount = "1000"
     @AppStorage("recentFiles") private var recentFilesData: Data = Data()
+    @AppStorage("tableFontSize") private var tableFontSize: Double = 13.0
     @FocusState private var isSearchFocused: Bool
     
     // Zoom state
@@ -402,27 +403,27 @@ struct ContentView: View {
         }
         
         NotificationCenter.default.addObserver(
-            forName: .zoomIn,
+            forName: .increaseFontSize,
             object: nil,
             queue: .main
         ) { _ in
-            zoomIn()
+            self.increaseFontSize()
         }
         
         NotificationCenter.default.addObserver(
-            forName: .zoomOut,
+            forName: .decreaseFontSize,
             object: nil,
             queue: .main
         ) { _ in
-            zoomOut()
+            self.decreaseFontSize()
         }
         
         NotificationCenter.default.addObserver(
-            forName: .zoomReset,
+            forName: .resetFontSize,
             object: nil,
             queue: .main
         ) { _ in
-            zoomReset()
+            self.resetFontSize()
         }
     }
     
@@ -528,25 +529,16 @@ struct ContentView: View {
     
     // MARK: - Zoom Functions
     
-    private func zoomIn() {
-        withAnimation(.easeOut(duration: 0.2)) {
-            currentZoom = min(currentZoom * 1.2, maxZoom)
-            steadyZoom = currentZoom
-        }
+    private func increaseFontSize() {
+        tableFontSize = min(tableFontSize + 1, 20)
     }
     
-    private func zoomOut() {
-        withAnimation(.easeOut(duration: 0.2)) {
-            currentZoom = max(currentZoom / 1.2, minZoom)
-            steadyZoom = currentZoom
-        }
+    private func decreaseFontSize() {
+        tableFontSize = max(tableFontSize - 1, 9)
     }
     
-    private func zoomReset() {
-        withAnimation(.easeOut(duration: 0.2)) {
-            currentZoom = 1.0
-            steadyZoom = 1.0
-        }
+    private func resetFontSize() {
+        tableFontSize = 13.0
     }
     
     private func enableFullScreen() {

@@ -67,20 +67,20 @@ struct ParquetViewApp: App {
                 
                 Divider()
                 
-                Button("Zoom In") {
-                    NotificationCenter.default.post(name: .zoomIn, object: nil)
+                Button("Increase Font Size") {
+                    NotificationCenter.default.post(name: .increaseFontSize, object: nil)
                 }
                 .keyboardShortcut("+", modifiers: .command)
                 
-                Button("Zoom Out") {
-                    NotificationCenter.default.post(name: .zoomOut, object: nil)
+                Button("Decrease Font Size") {
+                    NotificationCenter.default.post(name: .decreaseFontSize, object: nil)
                 }
                 .keyboardShortcut("-", modifiers: .command)
                 
-                Button("Actual Size") {
-                    NotificationCenter.default.post(name: .zoomReset, object: nil)
+                Button("Reset Font Size") {
+                    NotificationCenter.default.post(name: .resetFontSize, object: nil)
                 }
-                .keyboardShortcut("0", modifiers: [.command, .option])
+                .keyboardShortcut("0", modifiers: .command)
             }
             
             // Tab menu (when tabs enabled)
@@ -196,9 +196,9 @@ extension Notification.Name {
     static let exportCSV = Notification.Name("exportCSV")
     static let exportParquet = Notification.Name("exportParquet")
     static let focusSearch = Notification.Name("focusSearch")
-    static let zoomIn = Notification.Name("zoomIn")
-    static let zoomOut = Notification.Name("zoomOut")
-    static let zoomReset = Notification.Name("zoomReset")
+    static let increaseFontSize = Notification.Name("increaseFontSize")
+    static let decreaseFontSize = Notification.Name("decreaseFontSize")
+    static let resetFontSize = Notification.Name("resetFontSize")
 }
 
 // AppDelegate to ensure app appears in Dock and Cmd+Tab
