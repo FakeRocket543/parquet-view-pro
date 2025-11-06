@@ -1,12 +1,12 @@
-# Parquet Viewer v1.1.0 - Release Notes
+# Parquet View Pro v1.1.0 - Release Notes
 
 ## 📦 Release Information
 
 - **Version**: 1.1.0
 - **Release Date**: 2025-11-06
-- **File**: `ParquetViewer.dmg`
+- **File**: `ParquetViewPro.dmg`
 - **Size**: 15MB
-- **SHA256**: `ec3139e07d0b2e753fbdfb5d77fc71dfa0fef5fb3bc14fa6118da69099e9dab3`
+- **SHA256**: `861c5f2e1dc583ae11543cc21f832a7b8367f07d2c1e09bc1b20f99054236190`
 
 ## 🚀 New Features
 
@@ -107,8 +107,8 @@
 - 支援 Parquet 和 CSV 檔案格式
 
 ### 安裝方式
-1. 開啟 `ParquetViewer.dmg`
-2. 將 "Parquet Viewer" 拖拽到 Applications 資料夾
+1. 開啟 `ParquetViewPro.dmg`
+2. 將 "Parquet View Pro" 拖拽到 Applications 資料夾
 3. 首次開啟: 右鍵點擊應用程式 → 開啟 (繞過 Gatekeeper)
 
 ### 安全性
@@ -160,8 +160,8 @@
 
 ---
 
-**下載**: [ParquetViewer.dmg](ParquetViewer.dmg) (15MB)  
-**Checksum**: `ec3139e07d0b2e753fbdfb5d77fc71dfa0fef5fb3bc14fa6118da69099e9dab3`  
+**下載**: [ParquetViewPro.dmg](ParquetViewPro.dmg) (15MB)  
+**Checksum**: `861c5f2e1dc583ae11543cc21f832a7b8367f07d2c1e09bc1b20f99054236190`  
 **版本**: v1.1.0  
 **發佈日期**: 2025-11-06
 
