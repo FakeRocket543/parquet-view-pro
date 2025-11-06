@@ -48,8 +48,11 @@ struct ParquetTableView: NSViewRepresentable {
     func makeNSView(context: Context) -> FreezeTableContainerView {
         let container = FreezeTableContainerView()
         
-        // Create row numbers table (frozen)
-        let rowNumbersTable = NSTableView()
+        // Create row numbers table (frozen) - Use custom class for right-click support
+        let rowNumbersTable = RowNumberTableView()
+        rowNumbersTable.onCopyRow = { [weak coordinator = context.coordinator] row in
+            coordinator?.copyRow(at: row)
+        }
         let rowNumbersScrollView = NSScrollView()
         rowNumbersScrollView.documentView = rowNumbersTable
         rowNumbersScrollView.hasVerticalScroller = false // Synced with data table
@@ -102,7 +105,11 @@ struct ParquetTableView: NSViewRepresentable {
         // Configure data table
         dataTable.dataSource = context.coordinator
         dataTable.delegate = context.coordinator
-        dataTable.headerView = NSTableHeaderView()
+        let dataHeaderView = DataTableHeaderView()
+        dataHeaderView.onCopyColumn = { [weak coordinator = context.coordinator] column in
+            coordinator?.copyColumn(at: column)
+        }
+        dataTable.headerView = dataHeaderView
         dataTable.usesAlternatingRowBackgroundColors = true
         dataTable.allowsMultipleSelection = true
         dataTable.allowsColumnSelection = true
@@ -364,8 +371,17 @@ struct ParquetTableView: NSViewRepresentable {
             
             var textToCopy = ""
             
-            if selectedColumns.count > 0 {
-                // Copy selected columns
+            // CRITICAL: Check rows first! (User usually selects rows, not columns)
+            // Only treat as column selection if ONLY columns are selected (no rows)
+            if selectedRows.count > 0 && selectedColumns.count == 0 {
+                // Copy selected rows (most common case)
+                for rowIndex in selectedRows.sorted() {
+                    guard rowIndex < rows.count else { continue }
+                    let rowData = rows[rowIndex].joined(separator: "\t")
+                    textToCopy += rowData + "\n"
+                }
+            } else if selectedColumns.count > 0 && selectedRows.count == 0 {
+                // Copy selected columns (explicit column selection)
                 for columnIndex in selectedColumns.sorted() {
                     guard columnIndex < columns.count else { continue }
                     
@@ -380,12 +396,17 @@ struct ParquetTableView: NSViewRepresentable {
                     }
                     textToCopy += "\n"
                 }
-            } else if selectedRows.count > 0 {
-                // Copy selected rows
+            } else if selectedRows.count > 0 && selectedColumns.count > 0 {
+                // Both rows and columns selected - copy range
                 for rowIndex in selectedRows.sorted() {
                     guard rowIndex < rows.count else { continue }
-                    let rowData = rows[rowIndex].joined(separator: "\t")
-                    textToCopy += rowData + "\n"
+                    var rowData: [String] = []
+                    for columnIndex in selectedColumns.sorted() {
+                        if columnIndex < rows[rowIndex].count {
+                            rowData.append(rows[rowIndex][columnIndex])
+                        }
+                    }
+                    textToCopy += rowData.joined(separator: "\t") + "\n"
                 }
             }
             
@@ -402,6 +423,33 @@ struct ParquetTableView: NSViewRepresentable {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(columnNames, forType: .string)
+        }
+        
+        func copyRow(at index: Int) {
+            guard index < rows.count else { return }
+            let rowData = rows[index].joined(separator: "\t")
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(rowData, forType: .string)
+        }
+        
+        func copyColumn(at index: Int) {
+            guard index < columns.count else { return }
+            
+            var textToCopy = ""
+            // Copy column name first
+            textToCopy += columns[index] + "\n"
+            
+            // Copy all rows in this column
+            for rowIndex in 0..<rows.count {
+                if rowIndex < rows.count && index < rows[rowIndex].count {
+                    textToCopy += rows[rowIndex][index] + "\n"
+                }
+            }
+            
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(textToCopy, forType: .string)
         }
         
         // MARK: - Scroll Synchronization
@@ -449,8 +497,43 @@ class FreezeTableContainerView: NSView {
     }
 }
 
+// MARK: - Custom Table Views
+
+// Custom table view for row numbers with right-click support
+class RowNumberTableView: NSTableView {
+    var onCopyRow: ((Int) -> Void)?
+    
+    override func rightMouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let row = self.row(at: point)
+        
+        if row >= 0 {
+            // Select the row
+            selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+            
+            // Show menu
+            let menu = NSMenu()
+            let copyItem = NSMenuItem(title: "Copy Row", action: #selector(copyRowAction), keyEquivalent: "")
+            copyItem.target = self
+            copyItem.representedObject = row
+            menu.addItem(copyItem)
+            
+            NSMenu.popUpContextMenu(menu, with: event, for: self)
+        } else {
+            super.rightMouseDown(with: event)
+        }
+    }
+    
+    @objc func copyRowAction(_ sender: NSMenuItem) {
+        if let row = sender.representedObject as? Int {
+            onCopyRow?(row)
+        }
+    }
+}
+
 // MARK: - Clickable Table Header View
 
+// Header view for row numbers table ("#")
 class ClickableTableHeaderView: NSTableHeaderView {
     var onHeaderClick: (() -> Void)?
     
@@ -484,6 +567,41 @@ class ClickableTableHeaderView: NSTableHeaderView {
     
     @objc func copyHeaderAction() {
         onHeaderClick?()
+    }
+}
+
+// Header view for data table columns with per-column right-click
+class DataTableHeaderView: NSTableHeaderView {
+    var onCopyColumn: ((Int) -> Void)?
+    
+    override func rightMouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        let column = self.column(at: point)
+        
+        if column >= 0, let tableView = self.tableView {
+            // Select the column
+            tableView.selectColumnIndexes(IndexSet(integer: column), byExtendingSelection: false)
+            
+            // Get column name
+            let columnName = tableView.tableColumns[column].title
+            
+            // Show menu
+            let menu = NSMenu()
+            let copyItem = NSMenuItem(title: "Copy Column \"\(columnName)\"", action: #selector(copyColumnAction), keyEquivalent: "")
+            copyItem.target = self
+            copyItem.representedObject = column
+            menu.addItem(copyItem)
+            
+            NSMenu.popUpContextMenu(menu, with: event, for: self)
+        } else {
+            super.rightMouseDown(with: event)
+        }
+    }
+    
+    @objc func copyColumnAction(_ sender: NSMenuItem) {
+        if let column = sender.representedObject as? Int {
+            onCopyColumn?(column)
+        }
     }
 }
 
