@@ -1,4 +1,4 @@
-# Parquet View for macOS (Swift Version)
+# Parquet View Pro for macOS (Swift Version)
 
 A fast, native macOS application for viewing Apache Parquet files, powered by **Swift** and **DuckDB**.
 
@@ -41,7 +41,7 @@ This is a complete rewrite from the original Rust/egui version to solve macOS-sp
 
 1. **Open in Xcode:**
 ```bash
-open "Parquet View.xcodeproj"
+open "Parquet View Pro.xcodeproj"
 ```
 
 2. **Add DuckDB Package:**
@@ -50,14 +50,14 @@ open "Parquet View.xcodeproj"
    - Version: 1.1.3 or later
 
 3. **Build and Run:**
-   - Select target: "Parquet View"
+   - Select target: "Parquet View Pro"
    - Press `Cmd + R` to build and run
 
 4. **Create Release Build:**
 ```bash
-xcodebuild -scheme "Parquet View" \
+xcodebuild -scheme "Parquet View Pro" \
   -configuration Release \
-  -archivePath "build/ParquetViewer.xcarchive" \
+  -archivePath "build/ParquetViewPro.xcarchive" \
   archive
 ```
 
@@ -71,13 +71,13 @@ Pre-built DMG installer will be available in GitHub Releases.
 
 **Method 1: Double-Click**
 - In Finder, double-click any `.parquet` file
-- Parquet View will launch automatically
+- Parquet View Pro will launch automatically
 
 **Method 2: Drag & Drop**
 - Drag a `.parquet` file onto the Parquet View icon in Dock
 
 **Method 3: Open Menu**
-- Launch Parquet View
+- Launch Parquet View Pro
 - Click "Open File" button or press `Cmd + O`
 
 ### Searching Data
@@ -109,8 +109,8 @@ Pre-built DMG installer will be available in GitHub Releases.
 ## File Structure
 
 ```
-Parquet View/
-??? ParquetViewerApp.swift      # App entry point
+Parquet View Pro/
+??? ParquetViewApp.swift        # App entry point
 ??? DuckDBManager.swift          # Core data handling
 ??? ContentView.swift            # Main UI
 ??? DataTableView.swift          # Table component
@@ -155,15 +155,15 @@ Tested on M4 Max (16-core CPU, 40-core GPU, 128GB RAM):
 
 ```bash
 # Debug build
-xcodebuild -scheme "Parquet View" -configuration Debug
+xcodebuild -scheme "Parquet View Pro" -configuration Debug
 
 # Release build
-xcodebuild -scheme "Parquet View" -configuration Release
+xcodebuild -scheme "Parquet View Pro" -configuration Release
 
 # Create DMG
-hdiutil create -volname "Parquet View" \
-  -srcfolder "build/Release/Parquet View.app" \
-  -ov -format UDZO "ParquetViewer.dmg"
+hdiutil create -volname "Parquet View Pro" \
+  -srcfolder "build/Release/Parquet View Pro.app" \
+  -ov -format UDZO "ParquetViewPro.dmg"
 ```
 
 ### Code Signing
@@ -171,13 +171,13 @@ hdiutil create -volname "Parquet View" \
 ```bash
 # Sign the app
 codesign --deep --force --sign "Developer ID Application: YOUR_NAME" \
-  "Parquet View.app"
+  "Parquet View Pro.app"
 
 # Verify signature
-codesign --verify --verbose "Parquet View.app"
+codesign --verify --verbose "Parquet View Pro.app"
 
 # Notarize with Apple
-xcrun notarytool submit "ParquetViewer.dmg" \
+xcrun notarytool submit "ParquetViewPro.dmg" \
   --apple-id "your@email.com" \
   --team-id "TEAM_ID" \
   --password "app-specific-password"
@@ -195,18 +195,18 @@ The Rust version is archived in the `v0.1.0-rust` tag.
 
 ## Troubleshooting
 
-### "Parquet View" is damaged and can't be opened
+### "Parquet View Pro" is damaged and can't be opened
 
 This happens if the app isn't signed. To bypass (for development):
 ```bash
-xattr -cr "Parquet View.app"
+xattr -cr "Parquet View Pro.app"
 ```
 
 ### File associations not working
 
 1. Right-click a `.parquet` file
 2. Choose "Get Info"
-3. Under "Open with", select Parquet View
+3. Under "Open with", select Parquet View Pro
 4. Click "Change All..."
 
 ### Performance issues with large files
