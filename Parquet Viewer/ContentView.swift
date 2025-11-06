@@ -182,9 +182,11 @@ struct ContentView: View {
                         loadFile(url: url)
                     }
                 })
-            } else if dbManager.rows.isEmpty {
+            } else if !dbManager.hasLoadedFile {
+                // Show welcome screen only when no file has been loaded
                 WelcomeView(onOpen: openFile)
             } else {
+                // Show table view even if rows are empty (search result might be empty)
                 VStack(spacing: 0) {
                     // Search and Navigation bar
                     HStack(spacing: 12) {
@@ -246,14 +248,48 @@ struct ContentView: View {
                     
                     Divider()
                     
-                    // Data table - NSTableView with native freeze pane
-                    ParquetTableView(
-                        columns: dbManager.columns,
-                        rows: dbManager.rows,
-                        onLoadMore: {},
-                        hasMoreData: false,
-                        isLoadingMore: false
-                    )
+                    // Data table or empty search result message
+                    if dbManager.rows.isEmpty {
+                        // Show "No results" message when search returns empty
+                        VStack(spacing: 16) {
+                            Spacer()
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 48))
+                                .foregroundColor(.secondary)
+                            Text("No Results Found")
+                                .font(.title2)
+                                .bold()
+                            if !searchText.isEmpty {
+                                Text("No data matches '\(searchText)'")
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                Button {
+                                    searchText = ""
+                                    Task {
+                                        await dbManager.filterData(searchText: "")
+                                    }
+                                } label: {
+                                    Text("Clear Search")
+                                }
+                                .buttonStyle(.borderedProminent)
+                            } else {
+                                Text("This file contains no data")
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        // Data table - NSTableView with native freeze pane
+                        ParquetTableView(
+                            columns: dbManager.columns,
+                            rows: dbManager.rows,
+                            onLoadMore: {},
+                            hasMoreData: false,
+                            isLoadingMore: false
+                        )
+                    }
                 }
             }
         }

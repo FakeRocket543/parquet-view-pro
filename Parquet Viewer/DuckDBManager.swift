@@ -18,6 +18,7 @@ class DuckDBManager: ObservableObject {
     @Published var displayedRowCount: Int = 0
     @Published var fileInfo: FileInfo?
     @Published var currentStartRow: Int = 0
+    @Published var hasLoadedFile: Bool = false  // NEW: Track if file is loaded
     
     // MARK: - Private Properties
     
@@ -72,6 +73,7 @@ class DuckDBManager: ObservableObject {
         fileInfo = nil
         currentStartRow = 0
         currentFileURL = nil
+        hasLoadedFile = false  // Reset file loaded state
     }
     
     /// Load a Parquet file with optional row limit and offset
@@ -181,6 +183,7 @@ class DuckDBManager: ObservableObject {
                 self.displayedRowCount = finalDisplayCount
                 self.fileInfo = finalInfo
                 self.currentStartRow = startOffset
+                self.hasLoadedFile = true  // Mark that a file has been loaded
                 self.isLoading = false
             }
             
