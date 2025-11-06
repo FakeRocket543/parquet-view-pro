@@ -191,7 +191,7 @@ struct ContentView: View {
                         // Search
                         HStack(spacing: 8) {
                             Image(systemName: "magnifyingglass")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(isSearchFocused ? .blue : .secondary)
                             TextField("Search...", text: $searchText)
                                 .textFieldStyle(.plain)
                                 .focused($isSearchFocused)
@@ -213,6 +213,13 @@ struct ContentView: View {
                                 .buttonStyle(.plain)
                             }
                         }
+                        .padding(8)
+                        .background(isSearchFocused ? Color.blue.opacity(0.1) : Color.clear)
+                        .cornerRadius(6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(isSearchFocused ? Color.blue : Color.clear, lineWidth: 2)
+                        )
                         .frame(maxWidth: .infinity)
                         
                         // Row info and jump button
