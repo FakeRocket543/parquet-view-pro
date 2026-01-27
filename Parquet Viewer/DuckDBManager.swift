@@ -24,12 +24,15 @@ class DuckDBManager: ObservableObject {
     @Published var columnStats: [String: ColumnStats] = [:]  // Column statistics
     @Published var sortColumn: String? = nil  // Current sort column
     @Published var sortAscending: Bool = true  // Sort direction
+
+    // CSV integrity check result (stored as optional for UI handling)
+    var csvIssueResult: CSVIntegrityCheckResult? = nil
     
     // MARK: - Private Properties
     
     private var database: Database?
     private var connection: Connection?
-    private var currentFileURL: URL?
+    internal var currentFileURL: URL?  // Internal for CSV issue handling
     private let maxDisplayRows = DataConstants.defaultMaxRows
     
     // MARK: - Data Models
@@ -95,10 +98,11 @@ class DuckDBManager: ObservableObject {
     }
     
     /// Load a Parquet file with optional row limit and offset
-    func loadParquet(url: URL, limit: Int? = nil, offset: Int? = nil, quickPreview: Bool = false) async {
+    func loadParquet(url: URL, limit: Int? = nil, offset: Int? = nil, quickPreview: Bool = false, skipIntegrityCheck: Bool = false) async {
         await MainActor.run {
             isLoading = true
             errorMessage = nil
+            csvIssueResult = nil  // Reset previous issue
             columns = []
             rows = []
             totalRowCount = 0
@@ -106,10 +110,10 @@ class DuckDBManager: ObservableObject {
             loadingProgress = 0.0
             loadingMessage = quickPreview ? "Quick preview loading..." : "Loading file..."
         }
-        
+
         currentFileURL = url
         let rowLimit = quickPreview ? 100 : (limit ?? maxDisplayRows)
-        
+
         do {
             guard let conn = connection else {
                 throw NSError(domain: "DuckDB", code: -1,
@@ -134,6 +138,18 @@ class DuckDBManager: ObservableObject {
                 throw SecurityError.unsupportedFileType(extension: url.pathExtension)
             }
 
+            // CSV integrity check (only for CSV files and when not explicitly skipped)
+            if fileType == .csv && !skipIntegrityCheck && !quickPreview {
+                let checkResult = CSVIntegrityChecker.check(url: url)
+                if !checkResult.isValid {
+                    await MainActor.run {
+                        self.csvIssueResult = checkResult
+                        self.isLoading = false
+                    }
+                    return  // Stop loading and let UI handle the issue
+                }
+            }
+
             let countQuery: String
             var dataQuery: String
             let startOffset = offset ?? 0
@@ -141,8 +157,8 @@ class DuckDBManager: ObservableObject {
             // Build FROM clause based on file type with explicit parameters for CSV
             let fromClause: String
             if fileType == .csv {
-                // Use read_csv_auto for better compatibility
-                fromClause = "read_csv_auto('\(path)')"
+                // Use read_csv with explicit parameters for better parsing
+                fromClause = "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=false)"
             } else {
                 fromClause = "\(fileType.duckDBReadFunction)('\(path)')"
             }
@@ -315,8 +331,8 @@ class DuckDBManager: ObservableObject {
         // Build FROM clause based on file type with explicit parameters for CSV
         let fromClause: String
         if fileType == .csv {
-            // Use read_csv_auto for better compatibility
-            fromClause = "read_csv_auto('\(sourcePath)')"
+            // Use read_csv with explicit parameters for export compatibility
+            fromClause = "read_csv('\(sourcePath)', delim=',', quote='\"', escape='\"', header=true, auto_detect=false)"
         } else {
             fromClause = "\(fileType.duckDBReadFunction)('\(sourcePath)')"
         }
@@ -423,7 +439,7 @@ class DuckDBManager: ObservableObject {
         // Build FROM clause based on file type with explicit parameters for CSV
         let fromClause: String
         if fileType == .csv {
-            fromClause = "read_csv('\(path)', delim=',', header=true, autoDetect=true)"
+            fromClause = "read_csv('\(path)', delim=',', header=true, autoDetect=true, ignore_errors=true)"
         } else {
             fromClause = "\(fileType.duckDBReadFunction)('\(path)')"
         }
@@ -517,8 +533,8 @@ class DuckDBManager: ObservableObject {
             // Build FROM clause based on file type with explicit parameters for CSV
             let fromClause: String
             if fileType == .csv {
-                // Use read_csv_auto for better compatibility
-                fromClause = "read_csv_auto('\(path)')"
+                // Use read_csv with explicit parameters for better parsing
+                fromClause = "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=false)"
             } else {
                 fromClause = "\(fileType.duckDBReadFunction)('\(path)')"
             }
