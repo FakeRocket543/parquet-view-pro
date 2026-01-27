@@ -74,7 +74,7 @@ enum FileType: String, CaseIterable {
     func duckDBReadFunctionWithParams(path: String) -> String {
         switch self {
         case .parquet: return "read_parquet('\(path)')"
-        case .csv: return "read_csv('\(path)', delim=',', header=true, autoDetect=true)"
+        case .csv: return "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, auto_detect=false)"
         }
     }
 

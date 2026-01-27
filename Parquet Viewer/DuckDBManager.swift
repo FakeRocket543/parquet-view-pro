@@ -439,7 +439,7 @@ class DuckDBManager: ObservableObject {
         // Build FROM clause based on file type with explicit parameters for CSV
         let fromClause: String
         if fileType == .csv {
-            fromClause = "read_csv('\(path)', delim=',', header=true, autoDetect=true, ignore_errors=true)"
+            fromClause = "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=false)"
         } else {
             fromClause = "\(fileType.duckDBReadFunction)('\(path)')"
         }
