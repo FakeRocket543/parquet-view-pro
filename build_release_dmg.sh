@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 PROJECT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 APP_NAME="Parquet View Pro"
 BUNDLE_ID="com.parquetviewpro.app"
-BUILD_DIR="${PROJECT_DIR}/.build/release"
+BUILD_DIR="${PROJECT_DIR}/.build/arm64-apple-macosx/release"
 APP_BUNDLE="${BUILD_DIR}/${APP_NAME}.app"
 DMG_NAME="ParquetViewPro"
 DMG_OUTPUT="${PROJECT_DIR}/${DMG_NAME}.dmg"
@@ -50,7 +50,13 @@ mkdir -p "${APP_BUNDLE}/Contents/MacOS"
 mkdir -p "${APP_BUNDLE}/Contents/Resources"
 
 # Copy executable
+if [ ! -f "${BUILD_DIR}/Parquet-View" ]; then
+    echo -e "${RED}? Error: Executable not found at ${BUILD_DIR}/Parquet-View${NC}"
+    exit 1
+fi
+
 cp "${BUILD_DIR}/Parquet-View" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
+chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
 
 # Create Info.plist
 cat > "${APP_BUNDLE}/Contents/Info.plist" << EOF

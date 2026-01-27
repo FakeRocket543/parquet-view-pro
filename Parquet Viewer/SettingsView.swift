@@ -7,12 +7,12 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("theme") private var theme: Theme = .system
     @AppStorage("language") private var language: Language = .english
-    @AppStorage("maxRows") private var maxRows: Int = 1000
+    @AppStorage("maxRows") private var maxRows: Int = DataConstants.defaultMaxRows
     @AppStorage("uiScale") private var uiScale: Double = 1.0
     @AppStorage("maxTabs") private var maxTabs: Int = DefaultSettings.maxTabCount
     @AppStorage("tabsEnabled") private var tabsEnabled: Bool = true
     @AppStorage("zoomEnabled") private var zoomEnabled: Bool = true
-    @AppStorage("tableFontSize") private var tableFontSize: Double = 13.0
+    @AppStorage("tableFontSize") private var tableFontSize: Double = UIConstants.defaultTableFontSize
     
     @Environment(\.dismiss) private var dismiss
     
@@ -57,24 +57,26 @@ struct SettingsView: View {
                             Text("Table Font Size: \(Int(tableFontSize)) pt")
                             Spacer()
                             Button("Reset") {
-                                tableFontSize = 13.0
+                                tableFontSize = UIConstants.defaultTableFontSize
                             }
                             .buttonStyle(.borderless)
                             .font(.caption)
                         }
-                        
-                        Slider(value: $tableFontSize, in: 9...20, step: 1)
-                        
+
+                        Slider(value: $tableFontSize,
+                              in: UIConstants.minTableFontSize...UIConstants.maxTableFontSize,
+                              step: 1)
+
                         HStack {
-                            Text("9")
+                            Text("\(Int(UIConstants.minTableFontSize))")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("13 (Default)")
+                            Text("\(Int(UIConstants.defaultTableFontSize)) (Default)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("20")
+                            Text("\(Int(UIConstants.maxTableFontSize))")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -94,8 +96,11 @@ struct SettingsView: View {
                 }
                 
                 Section("Performance") {
-                    Stepper("Max Rows to Load: \(maxRows)", value: $maxRows, in: 100...10000, step: 100)
-                    
+                    Stepper("Max Rows to Load: \(maxRows)",
+                           value: $maxRows,
+                           in: DataConstants.minMaxRows...DataConstants.maxMaxRows,
+                           step: DataConstants.maxRowsStep)
+
                     Text("Higher values may impact performance")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -130,7 +135,30 @@ struct SettingsView: View {
                     LabeledContent("App", value: FeatureFlags.appName)
                     LabeledContent("Build", value: "Swift + DuckDB")
                     
-                    Link("GitHub Repository", destination: URL(string: "https://github.com/yourusername/parquet-viewer")!)
+                    Divider()
+                    
+                    DisclosureGroup("Keyboard Shortcuts") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ShortcutRow(keys: "⌘O", action: "Open File")
+                            ShortcutRow(keys: "⌘F", action: "Search")
+                            ShortcutRow(keys: "⌘+", action: "Increase Font")
+                            ShortcutRow(keys: "⌘-", action: "Decrease Font")
+                            ShortcutRow(keys: "⌘0", action: "Reset Font")
+                            ShortcutRow(keys: "⌘⇧E", action: "Export CSV")
+                            ShortcutRow(keys: "⌘⌥E", action: "Export Parquet")
+                            if tabsEnabled {
+                                Divider()
+                                ShortcutRow(keys: "⌘T", action: "New Tab")
+                                ShortcutRow(keys: "⌘W", action: "Close Tab")
+                                ShortcutRow(keys: "⌘1-9", action: "Select Tab")
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    
+                    if let githubURL = URL(string: "https://github.com/yourusername/parquet-viewer") {
+                        Link("GitHub Repository", destination: githubURL)
+                    }
                 }
             }
             .formStyle(.grouped)
@@ -146,7 +174,7 @@ struct SettingsView: View {
             }
             .padding()
         }
-        .frame(width: 500, height: 500)
+        .frame(width: UIConstants.settingsWindowWidth, height: UIConstants.settingsWindowHeight)
     }
 }
 
@@ -171,4 +199,23 @@ enum Language: String, CaseIterable, Identifiable {
 
 #Preview {
     SettingsView()
+}
+
+// MARK: - Helper Views
+
+struct ShortcutRow: View {
+    let keys: String
+    let action: String
+    
+    var body: some View {
+        HStack {
+            Text(keys)
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(.accentColor)
+                .frame(width: 80, alignment: .leading)
+            Text(action)
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+    }
 }

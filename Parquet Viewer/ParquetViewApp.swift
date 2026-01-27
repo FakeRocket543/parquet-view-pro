@@ -61,7 +61,7 @@ struct ParquetViewApp: App {
             // Replace default View menu
             CommandGroup(replacing: .sidebar) {
                 Button("Toggle Sidebar") {
-                    NSApp.keyWindow?.firstResponder?.tryToPerform(#selector(NSSplitViewController.toggleSidebar(_:)), with: nil)
+                    NotificationCenter.default.post(name: .toggleSidebar, object: nil)
                 }
                 .keyboardShortcut("s", modifiers: [.command, .control])
                 
@@ -199,6 +199,7 @@ extension Notification.Name {
     static let increaseFontSize = Notification.Name("increaseFontSize")
     static let decreaseFontSize = Notification.Name("decreaseFontSize")
     static let resetFontSize = Notification.Name("resetFontSize")
+    static let toggleSidebar = Notification.Name("toggleSidebar")
 }
 
 // AppDelegate to ensure app appears in Dock and Cmd+Tab

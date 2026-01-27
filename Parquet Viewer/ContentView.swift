@@ -173,156 +173,36 @@ struct ContentView: View {
     // MARK: - Detail View
     
     private var detailView: some View {
-        Group {
-            if dbManager.isLoading {
-                LoadingView()
-            } else if let error = dbManager.errorMessage {
-                ErrorView(message: error, retry: {
-                    if let url = selectedFile {
-                        loadFile(url: url)
-                    }
-                })
-            } else if !dbManager.hasLoadedFile {
-                // Show welcome screen only when no file has been loaded
-                WelcomeView(onOpen: openFile)
-            } else {
-                // Show table view even if rows are empty (search result might be empty)
-                VStack(spacing: 0) {
-                    // Search and Navigation bar
-                    HStack(spacing: 12) {
-                        // Search
-                        HStack(spacing: 8) {
-                            Image(systemName: "magnifyingglass")
-                                .foregroundColor(isSearchFocused ? .blue : .secondary)
-                            TextField("Search...", text: $searchText)
-                                .textFieldStyle(.plain)
-                                .focused($isSearchFocused)
-                                .onSubmit {
-                                    Task {
-                                        await dbManager.filterData(searchText: searchText)
-                                    }
-                                }
-                            if !searchText.isEmpty {
-                                Button {
-                                    searchText = ""
-                                    Task {
-                                        await dbManager.filterData(searchText: "")
-                                    }
-                                } label: {
-                                    Image(systemName: "xmark.circle.fill")
-                                        .foregroundColor(.secondary)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(8)
-                        .background(isSearchFocused ? Color.blue.opacity(0.1) : Color.clear)
-                        .cornerRadius(6)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 6)
-                                .stroke(isSearchFocused ? Color.blue : Color.clear, lineWidth: 2)
-                        )
-                        .frame(maxWidth: .infinity)
-                        
-                        // Row info and jump button
-                        if dbManager.totalRowCount > 1000 {
-                            Divider()
-                                .frame(height: 20)
-                            
-                            Text("Rows \(dbManager.currentStartRow + 1)-\(dbManager.currentStartRow + dbManager.displayedRowCount) of \(dbManager.totalRowCount)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .fixedSize()
-                            
-                            Button {
-                                showingJumpDialog = true
-                            } label: {
-                                Image(systemName: "arrow.up.arrow.down")
-                            }
-                            .help("Jump to row...")
-                            .buttonStyle(.borderless)
-                        }
-                    }
-                    .padding(8)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    
-                    Divider()
-                    
-                    // Data table or empty search result message
-                    if dbManager.rows.isEmpty {
-                        // Show "No results" message when search returns empty
-                        VStack(spacing: 16) {
-                            Spacer()
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 48))
-                                .foregroundColor(.secondary)
-                            Text("No Results Found")
-                                .font(.title2)
-                                .bold()
-                            if !searchText.isEmpty {
-                                Text("No data matches '\(searchText)'")
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                                Button {
-                                    searchText = ""
-                                    Task {
-                                        await dbManager.filterData(searchText: "")
-                                    }
-                                } label: {
-                                    Text("Clear Search")
-                                }
-                                .buttonStyle(.borderedProminent)
-                            } else {
-                                Text("This file contains no data")
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        // Data table - NSTableView with native freeze pane
-                        ParquetTableView(
-                            columns: dbManager.columns,
-                            rows: dbManager.rows,
-                            onLoadMore: {},
-                            hasMoreData: false,
-                            isLoadingMore: false
-                        )
-                    }
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        DetailView(
+            dbManager: dbManager,
+            selectedFile: $selectedFile,
+            searchText: $searchText,
+            isSearchFocused: $isSearchFocused,
+            showingJumpDialog: $showingJumpDialog,
+            jumpToRowNumber: $jumpToRowNumber,
+            jumpRowCount: $jumpRowCount,
+            openFile: openFile
+        )
     }
     
     // MARK: - Actions
     
     private func openFile() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [
-            .init(filenameExtension: "parquet")!,
-            .commaSeparatedText
-        ]
-        panel.allowsMultipleSelection = true  // 允許多重選擇
-        panel.canChooseDirectories = false
-        panel.message = FeatureFlags.tabsEnabled 
-            ? "Select one or more Parquet/CSV files to view"
-            : "Select a Parquet or CSV file to view"
-        
-        if panel.runModal() == .OK {
-            let urls = panel.urls
-            
-            if urls.isEmpty { return }
-            
-            // Pro 版本: 在分頁中開啟多個檔案
-            if FeatureFlags.tabsEnabled && urls.count > 1 {
-                openMultipleFiles(urls: urls)
-            } else {
-                // 單一檔案或免費版本: 只開啟第一個檔案
-                if let url = urls.first {
-                    loadFile(url: url)
+        FileOpenDialog.present { result in
+            switch result {
+            case .single(let url):
+                loadFile(url: url)
+            case .multiple(let urls):
+                if FeatureFlags.tabsEnabled {
+                    openMultipleFiles(urls: urls)
+                } else {
+                    // Free version: only open first file
+                    if let url = urls.first {
+                        loadFile(url: url)
+                    }
                 }
+            case .cancelled:
+                break
             }
         }
     }
@@ -497,69 +377,19 @@ struct ContentView: View {
     }
     
     // MARK: - Notification Handlers
-    
+
     private func setupNotifications() {
-        NotificationCenter.default.addObserver(
-            forName: .openFile,
-            object: nil,
-            queue: .main
-        ) { _ in
-            openFile()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .exportCSV,
-            object: nil,
-            queue: .main
-        ) { _ in
-            if !dbManager.rows.isEmpty {
-                exportCSV()
-            }
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .exportParquet,
-            object: nil,
-            queue: .main
-        ) { _ in
-            if !dbManager.rows.isEmpty {
-                exportParquet()
-            }
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .focusSearch,
-            object: nil,
-            queue: .main
-        ) { _ in
-            if !dbManager.rows.isEmpty {
-                isSearchFocused = true
-            }
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .increaseFontSize,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.increaseFontSize()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .decreaseFontSize,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.decreaseFontSize()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .resetFontSize,
-            object: nil,
-            queue: .main
-        ) { _ in
-            self.resetFontSize()
-        }
+        let handlers = NotificationHandlers(
+            dbManager: dbManager,
+            openFile: openFile,
+            exportCSV: exportCSV,
+            exportParquet: exportParquet,
+            increaseFontSize: increaseFontSize,
+            decreaseFontSize: decreaseFontSize,
+            resetFontSize: resetFontSize,
+            isSearchFocused: $isSearchFocused
+        )
+        handlers.setupNotifications()
     }
     
     private func setupTabNotifications() {
@@ -696,193 +526,6 @@ extension EnvironmentValues {
     var dynamicFontScale: Double {
         get { self[DynamicFontScaleKey.self] }
         set { self[DynamicFontScaleKey.self] = newValue }
-    }
-}
-
-// MARK: - Supporting Views
-
-struct FileInfoSection: View {
-    let info: DuckDBManager.FileInfo
-    let totalRows: Int
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Current File")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            InfoRow(label: "Name", value: info.name)
-            InfoRow(label: "Size", value: info.size)
-            InfoRow(label: "Columns", value: "\(info.columnCount)")
-            InfoRow(label: "Rows", value: "\(totalRows)")
-        }
-    }
-}
-
-struct InfoRow: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(value)
-                .font(.caption)
-                .bold()
-        }
-    }
-}
-
-struct RecentFilesSection: View {
-    let files: [URL]
-    let onSelect: (URL) -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Recent Files")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            ForEach(files.prefix(5), id: \.self) { url in
-                Button {
-                    onSelect(url)
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "doc.fill")
-                            .foregroundColor(.blue)
-                            .font(.body)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(url.lastPathComponent)
-                                .font(.body)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Text(url.deletingLastPathComponent().path)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                        }
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-                .padding(.vertical, 4)
-            }
-        }
-    }
-}
-
-struct SearchBar: View {
-    @Binding var text: String
-    let onSearch: () -> Void
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "magnifyingglass")
-                .foregroundColor(.secondary)
-            
-            TextField("Search...", text: $text)
-                .textFieldStyle(.plain)
-                .onSubmit(onSearch)
-            
-            if !text.isEmpty {
-                Button {
-                    text = ""
-                    onSearch()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(8)
-        .background(Color(NSColor.controlBackgroundColor))
-        .cornerRadius(8)
-        .padding()
-    }
-}
-
-struct LoadingView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
-            Text("Loading...")
-                .font(.headline)
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
-struct ErrorView: View {
-    let message: String
-    let retry: () -> Void
-    
-    var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundColor(.orange)
-            
-            Text("Error")
-                .font(.title)
-            
-            Text(message)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
-            
-            Button("Retry", action: retry)
-                .buttonStyle(.borderedProminent)
-        }
-        .padding()
-    }
-}
-
-struct WelcomeView: View {
-    let onOpen: () -> Void
-    
-    var body: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 24) {
-                Image(systemName: "doc.text")
-                    .font(.system(size: 80))
-                    .foregroundColor(.blue)
-                
-                VStack(spacing: 8) {
-                    Text("Welcome to Parquet View")
-                        .font(.title)
-                        .bold()
-                    
-                    Text("Open a Parquet or CSV file to get started")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                }
-                
-                VStack(spacing: 12) {
-                    Button {
-                        onOpen()
-                    } label: {
-                        Label("Open File", systemImage: "folder")
-                            .font(.headline)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    
-                    Text("or drag and drop a file here")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

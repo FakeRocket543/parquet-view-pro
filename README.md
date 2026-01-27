@@ -215,14 +215,23 @@ xattr -cr "Parquet View Pro.app"
 2. Reduce "Max Rows to Load" value
 3. Restart the app
 
-## Roadmap
+## Recent Updates (v1.2.0)
+
+### ✅ Completed
+- [x] **Multiple file tabs** - Open multiple files simultaneously
+- [x] **Security hardening** - SQL injection and path traversal protection
+- [x] **Performance optimization** - Search debouncing (500ms)
+- [x] **Bug fixes** - Row number column scroll sync
+- [x] **Code quality** - Centralized constants management
+
+### Roadmap
 
 - [ ] Column sorting
 - [ ] Advanced filtering (SQL-like)
 - [ ] Data visualization charts
 - [ ] Parquet metadata viewer
-- [ ] Multiple file tabs
 - [ ] SQL query interface
+- [ ] Unit tests coverage
 
 ## Contributing
 
