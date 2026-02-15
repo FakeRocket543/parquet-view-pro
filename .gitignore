@@ -1,0 +1,38 @@
+# Build
+.build/
+build/
+DerivedData/
+
+# DMG & app bundles
+*.dmg
+*.dmg.sha256
+.dmg_temp_*/
+
+# Xcode user data
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# SwiftPM
+.swiftpm/xcode/xcuserdata/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# Backup files
+*.backup
+*.old
+*.bak
+
+# Test data
+test_sample.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
