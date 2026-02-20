@@ -161,7 +161,7 @@ final class DuckDBManagerTests: XCTestCase {
         
         await sut.loadMoreData()
         
-        XCTAssertEqual(sut.rows.count, 1000)
+        XCTAssertEqual(sut.rows.count, 1500)
     }
     
     func testHasMoreData_whenMoreRowsExist() async throws {
