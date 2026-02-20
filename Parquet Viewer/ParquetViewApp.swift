@@ -4,13 +4,13 @@
 
 import SwiftUI
 
-@main
-struct ParquetViewApp: App {
-    // FIXED: Use NSApplicationDelegateAdaptor to set activation policy
+public struct ParquetViewApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @AppStorage("theme") private var theme: Theme = .system
     
-    var body: some Scene {
+    public init() {}
+    
+    public var body: some Scene {
         WindowGroup {
             ContentView()
                 .frame(minWidth: 800, idealWidth: 1200, maxWidth: .infinity,
@@ -187,19 +187,6 @@ extension Theme {
         case .system: return nil
         }
     }
-}
-
-// MARK: - Notification Names
-
-extension Notification.Name {
-    static let openFile = Notification.Name("openFile")
-    static let exportCSV = Notification.Name("exportCSV")
-    static let exportParquet = Notification.Name("exportParquet")
-    static let focusSearch = Notification.Name("focusSearch")
-    static let increaseFontSize = Notification.Name("increaseFontSize")
-    static let decreaseFontSize = Notification.Name("decreaseFontSize")
-    static let resetFontSize = Notification.Name("resetFontSize")
-    static let toggleSidebar = Notification.Name("toggleSidebar")
 }
 
 // AppDelegate to ensure app appears in Dock and Cmd+Tab

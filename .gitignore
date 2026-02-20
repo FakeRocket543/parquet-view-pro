@@ -28,6 +28,31 @@ xcuserdata/
 
 # Test data
 test_sample.csv
+test.csv
+test_large.csv
+sample_test.parquet
+create_test_data.py
+
+# App bundle (built artifact)
+Parquet View Pro.app/
+
+# IDE / tool configs
+.serena/
+.taskmaster/
+.vscode/
+
+# Temp reports & logs
+BUILD_AND_TEST_REPORT.md
+CSV_FIX_SUMMARY.md
+FINAL_BUILD_SUMMARY.txt
+build.log
+logs/
+
+# Misc temp
+0106/
+bug_1/
+demo/
+docs/
 
 # Python
 __pycache__/

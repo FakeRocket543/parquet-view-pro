@@ -3,17 +3,21 @@
 // SM-X: Tab Management
 
 import SwiftUI
+import Combine
 
 // MARK: - Tab Model
 
-struct FileTab: Identifiable, Equatable {
+@MainActor
+class FileTab: ObservableObject, Identifiable {
     let id: UUID
-    var fileURL: URL?  // Mutable for updating empty tabs
-    var displayName: String
+    @Published var fileURL: URL?
+    @Published var displayName: String
+    let dbManager: DuckDBManager
     
     init(fileURL: URL?, id: UUID = UUID()) {
         self.id = id
         self.fileURL = fileURL
+        self.dbManager = DuckDBManager()
         if let url = fileURL {
             self.displayName = url.lastPathComponent
         } else {
@@ -21,8 +25,9 @@ struct FileTab: Identifiable, Equatable {
         }
     }
     
-    static func == (lhs: FileTab, rhs: FileTab) -> Bool {
-        lhs.id == rhs.id
+    func updateFileURL(_ newURL: URL) {
+        self.fileURL = newURL
+        self.displayName = newURL.lastPathComponent
     }
 }
 
@@ -37,6 +42,10 @@ class TabManager: ObservableObject {
     var currentTab: FileTab? {
         guard let selectedTabID = selectedTabID else { return nil }
         return tabs.first { $0.id == selectedTabID }
+    }
+    
+    var currentDBManager: DuckDBManager? {
+        currentTab?.dbManager
     }
     
     var canAddTab: Bool {
@@ -71,7 +80,7 @@ class TabManager: ObservableObject {
     /// Update the current tab with a file URL (for empty tabs opening files)
     func updateCurrentTab(fileURL: URL) -> Bool {
         guard let selectedTabID = selectedTabID,
-              let index = tabs.firstIndex(where: { $0.id == selectedTabID }) else {
+              let currentTab = tabs.first(where: { $0.id == selectedTabID }) else {
             return false
         }
         
@@ -81,8 +90,8 @@ class TabManager: ObservableObject {
             return true
         }
         
-        // Update the current tab (keep same ID, update fileURL and displayName)
-        tabs[index] = FileTab(fileURL: fileURL, id: tabs[index].id)
+        // Update the current tab (keep same ID and dbManager, update fileURL)
+        currentTab.updateFileURL(fileURL)
         return true
     }
     
@@ -142,6 +151,9 @@ class TabManager: ObservableObject {
 
 struct TabBarView: View {
     @ObservedObject var tabManager: TabManager
+    var onCreateEmptyTab: () -> Void
+    var onCloseOtherTabs: (UUID) -> Void
+    var onCloseAllTabs: () -> Void
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -155,15 +167,18 @@ struct TabBarView: View {
                         },
                         onClose: {
                             tabManager.closeTab(id: tab.id)
-                        }
+                        },
+                        onCloseOthers: {
+                            onCloseOtherTabs(tab.id)
+                        },
+                        onCloseAll: onCloseAllTabs
                     )
                 }
                 
                 // Add tab button
                 if tabManager.canAddTab {
                     Button {
-                        // Create empty tab (show welcome screen)
-                        NotificationCenter.default.post(name: .createEmptyTab, object: nil)
+                        onCreateEmptyTab()
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 12))
@@ -188,6 +203,8 @@ struct TabItemView: View {
     let isSelected: Bool
     let onSelect: () -> Void
     let onClose: () -> Void
+    let onCloseOthers: () -> Void
+    let onCloseAll: () -> Void
     
     @State private var isHovering = false
     
@@ -238,14 +255,10 @@ struct TabItemView: View {
                 onClose()
             }
             Button("Close Others") {
-                NotificationCenter.default.post(
-                    name: .closeOtherTabs,
-                    object: nil,
-                    userInfo: ["tabID": tab.id]
-                )
+                onCloseOthers()
             }
             Button("Close All") {
-                NotificationCenter.default.post(name: .closeAllTabs, object: nil)
+                onCloseAll()
             }
         }
     }
@@ -265,17 +278,4 @@ struct TabItemView: View {
             return "doc.fill"
         }
     }
-}
-
-// MARK: - Notification Names
-
-extension Notification.Name {
-    static let openFileFromTab = Notification.Name("openFileFromTab")
-    static let createEmptyTab = Notification.Name("createEmptyTab")
-    static let closeCurrentTab = Notification.Name("closeCurrentTab")
-    static let closeOtherTabs = Notification.Name("closeOtherTabs")
-    static let closeAllTabs = Notification.Name("closeAllTabs")
-    static let nextTab = Notification.Name("nextTab")
-    static let previousTab = Notification.Name("previousTab")
-    static let selectTab = Notification.Name("selectTab")
 }

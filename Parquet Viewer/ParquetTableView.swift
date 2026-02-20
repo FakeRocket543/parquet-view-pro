@@ -1,36 +1,27 @@
 //
 // ParquetTableView.swift
-// NSTableView-based data table with TRUE freeze pane support
+// NSTableView-based data table with row numbers as first column
 //
 
 import SwiftUI
 import AppKit
 
-/// Custom NSTableView wrapper with freeze pane for row numbers
+/// Single NSTableView with row number as first column — guarantees perfect alignment
 struct ParquetTableView: NSViewRepresentable {
-    // Data
     let columns: [String]
     let rows: [[String]]
-    
-    // Configuration
     let onLoadMore: () -> Void
     let hasMoreData: Bool
     let isLoadingMore: Bool
-    
-    // Sorting
     let sortColumn: String?
     let sortAscending: Bool
     let onSort: ((String) -> Void)?
-    
-    // Font size from settings
     @AppStorage("tableFontSize") private var tableFontSize: Double = 13.0
-    
-    // Copy handlers
     let onCopyCell: ((Int, Int) -> Void)?
     let onCopyRow: ((Int) -> Void)?
     let onCopyColumn: ((Int) -> Void)?
     let onCopyColumnNames: (() -> Void)?
-    
+
     init(
         columns: [String],
         rows: [[String]],
@@ -58,121 +49,62 @@ struct ParquetTableView: NSViewRepresentable {
         self.onCopyColumn = onCopyColumn
         self.onCopyColumnNames = onCopyColumnNames
     }
-    
-    func makeNSView(context: Context) -> NSView {
-        // Create container with frozen left column (row numbers) and scrollable right section (data)
-        let container = NSView()
 
-        // LEFT: Frozen row numbers table
-        let rowNumberTable = NSTableView()
-        let rowNumberScrollView = NSScrollView()
-        rowNumberScrollView.documentView = rowNumberTable
-        rowNumberScrollView.hasVerticalScroller = false
-        rowNumberScrollView.hasHorizontalScroller = false
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        let tableView = NSTableView()
+        scrollView.documentView = tableView
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = true
+        scrollView.autohidesScrollers = false
 
-        // Add only row number column
-        let rowNumberColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("col_rownum"))
-        rowNumberColumn.title = "#"
-        rowNumberColumn.width = 60
-        rowNumberColumn.minWidth = 60
-        rowNumberColumn.maxWidth = 60
-        rowNumberColumn.resizingMask = []
-        rowNumberTable.addTableColumn(rowNumberColumn)
+        // Row number column (#)
+        let rowNumCol = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("col_rownum"))
+        rowNumCol.title = "#"
+        rowNumCol.width = 60
+        rowNumCol.minWidth = 40
+        rowNumCol.maxWidth = 80
+        rowNumCol.resizingMask = []
+        tableView.addTableColumn(rowNumCol)
 
-        // Configure row number table
-        rowNumberTable.dataSource = context.coordinator
-        rowNumberTable.delegate = context.coordinator
-        rowNumberTable.headerView = NSTableHeaderView()
-        rowNumberTable.usesAlternatingRowBackgroundColors = true
-        rowNumberTable.intercellSpacing = NSSize(width: 1, height: 1)
-        rowNumberTable.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
-
-        // RIGHT: Scrollable data table
-        let dataTable = NSTableView()
-        let dataScrollView = NSScrollView()
-        dataScrollView.documentView = dataTable
-        dataScrollView.hasVerticalScroller = true
-        dataScrollView.hasHorizontalScroller = true
-        dataScrollView.autohidesScrollers = false
-
-        // Add all data columns (all columns from data)
-        for (index, columnName) in columns.enumerated() {
-            let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("col_\(index)"))
-            column.title = columnName
-            column.width = 150
-            column.minWidth = 50
-            column.maxWidth = 500
-            dataTable.addTableColumn(column)
+        // Data columns
+        for (index, name) in columns.enumerated() {
+            let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("col_\(index)"))
+            col.title = name
+            col.width = 150
+            col.minWidth = 50
+            col.maxWidth = 500
+            tableView.addTableColumn(col)
         }
 
-        // Configure data table
-        dataTable.dataSource = context.coordinator
-        dataTable.delegate = context.coordinator
+        tableView.dataSource = context.coordinator
+        tableView.delegate = context.coordinator
         let headerView = DataTableHeaderView()
-        headerView.onCopyColumn = { [weak coordinator = context.coordinator] column in
-            coordinator?.copyColumn(at: column)
+        headerView.onCopyColumn = { [weak coordinator = context.coordinator] col in
+            coordinator?.copyColumn(at: col)
         }
-        headerView.onSortColumn = { [weak coordinator = context.coordinator] column in
-            coordinator?.handleSort(at: column)
+        headerView.onSortColumn = { [weak coordinator = context.coordinator] col in
+            coordinator?.handleSort(at: col)
         }
-        dataTable.headerView = headerView
-        dataTable.usesAlternatingRowBackgroundColors = true
-        dataTable.allowsMultipleSelection = true
-        dataTable.allowsColumnSelection = false  // Disable column selection (view-based tables don't support it)
-        dataTable.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
-        dataTable.intercellSpacing = NSSize(width: 1, height: 1)
-        dataTable.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
-        dataTable.target = context.coordinator
-        dataTable.doubleAction = #selector(Coordinator.tableDoubleClick(_:))
+        tableView.headerView = headerView
+        tableView.usesAlternatingRowBackgroundColors = true
+        tableView.allowsMultipleSelection = true
+        tableView.allowsColumnSelection = false
+        tableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        tableView.intercellSpacing = NSSize(width: 1, height: 1)
+        tableView.gridStyleMask = [.solidHorizontalGridLineMask, .solidVerticalGridLineMask]
+        tableView.target = context.coordinator
+        tableView.doubleAction = #selector(Coordinator.tableDoubleClick(_:))
+        tableView.menu = NSMenu()
+        tableView.menu?.delegate = context.coordinator
 
-        // Enable context menu
-        dataTable.menu = NSMenu()
-        dataTable.menu?.delegate = context.coordinator
+        context.coordinator.dataTable = tableView
+        context.coordinator.dataScrollView = scrollView
 
-        // Synchronize vertical scrolling between row numbers and data tables
-        let clipView = dataScrollView.contentView
-        NotificationCenter.default.addObserver(
-            forName: NSView.boundsDidChangeNotification,
-            object: clipView,
-            queue: .main
-        ) { [weak rowNumberScrollView] _ in
-            if let rowNumberClipView = rowNumberScrollView?.contentView {
-                var bounds = rowNumberClipView.bounds
-                bounds.origin.y = clipView.bounds.origin.y
-                rowNumberClipView.bounds = bounds
-            }
-        }
-
-        // Layout: HStack with frozen left and scrollable right
-        container.addSubview(rowNumberScrollView)
-        container.addSubview(dataScrollView)
-
-        rowNumberScrollView.translatesAutoresizingMaskIntoConstraints = false
-        dataScrollView.translatesAutoresizingMaskIntoConstraints = false
-
-        NSLayoutConstraint.activate([
-            rowNumberScrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            rowNumberScrollView.topAnchor.constraint(equalTo: container.topAnchor),
-            rowNumberScrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            rowNumberScrollView.widthAnchor.constraint(equalToConstant: 60),
-
-            dataScrollView.leadingAnchor.constraint(equalTo: rowNumberScrollView.trailingAnchor),
-            dataScrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            dataScrollView.topAnchor.constraint(equalTo: container.topAnchor),
-            dataScrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
-
-        // Store references in coordinator
-        context.coordinator.rowNumbersTable = rowNumberTable
-        context.coordinator.rowNumbersScrollView = rowNumberScrollView
-        context.coordinator.dataTable = dataTable
-        context.coordinator.dataScrollView = dataScrollView
-
-        return container
+        return scrollView
     }
-    
-    func updateNSView(_ nsView: NSView, context: Context) {
-        // Update coordinator data
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
         context.coordinator.columns = columns
         context.coordinator.rows = rows
         context.coordinator.hasMoreData = hasMoreData
@@ -181,49 +113,40 @@ struct ParquetTableView: NSViewRepresentable {
         context.coordinator.sortColumn = sortColumn
         context.coordinator.sortAscending = sortAscending
 
-        // Reload both tables
-        context.coordinator.rowNumbersTable?.reloadData()
         context.coordinator.dataTable?.reloadData()
-        
-        // Update header sort indicators
-        if let dataTable = context.coordinator.dataTable {
-            for (index, columnName) in columns.enumerated() {
-                if let tableColumn = dataTable.tableColumns.first(where: { $0.identifier.rawValue == "col_\(index)" }) {
-                    if columnName == sortColumn {
-                        tableColumn.title = sortAscending ? "\(columnName) ▲" : "\(columnName) ▼"
-                    } else {
-                        tableColumn.title = columnName
-                    }
+
+        // Update sort indicators (skip col_rownum at index 0)
+        if let table = context.coordinator.dataTable {
+            for (index, name) in columns.enumerated() {
+                let id = NSUserInterfaceItemIdentifier("col_\(index)")
+                if let tc = table.tableColumns.first(where: { $0.identifier == id }) {
+                    tc.title = name == sortColumn
+                        ? (sortAscending ? "\(name) ▲" : "\(name) ▼")
+                        : name
                 }
             }
         }
     }
-    
+
     func makeCoordinator() -> Coordinator {
         Coordinator(
-            columns: columns,
-            rows: rows,
-            hasMoreData: hasMoreData,
-            isLoadingMore: isLoadingMore,
-            sortColumn: sortColumn,
-            sortAscending: sortAscending,
-            onLoadMore: onLoadMore,
-            onSort: onSort,
-            onCopyCell: onCopyCell,
-            onCopyRow: onCopyRow,
-            onCopyColumn: onCopyColumn,
-            onCopyColumnNames: onCopyColumnNames
+            columns: columns, rows: rows,
+            hasMoreData: hasMoreData, isLoadingMore: isLoadingMore,
+            sortColumn: sortColumn, sortAscending: sortAscending,
+            onLoadMore: onLoadMore, onSort: onSort,
+            onCopyCell: onCopyCell, onCopyRow: onCopyRow,
+            onCopyColumn: onCopyColumn, onCopyColumnNames: onCopyColumnNames
         )
     }
-    
+
     // MARK: - Coordinator
-    
+
     class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         var columns: [String]
         var rows: [[String]]
         var hasMoreData: Bool
         var isLoadingMore: Bool
-        var fontSize: Double = 13.0 // Font size for table cells
+        var fontSize: Double = 13.0
         var sortColumn: String?
         var sortAscending: Bool = true
         let onLoadMore: () -> Void
@@ -233,18 +156,13 @@ struct ParquetTableView: NSViewRepresentable {
         let onCopyColumn: ((Int) -> Void)?
         let onCopyColumnNames: (() -> Void)?
 
-        weak var rowNumbersTable: NSTableView?
-        weak var rowNumbersScrollView: NSScrollView?
         weak var dataTable: NSTableView?
         weak var dataScrollView: NSScrollView?
-        
+
         init(
-            columns: [String],
-            rows: [[String]],
-            hasMoreData: Bool,
-            isLoadingMore: Bool,
-            sortColumn: String?,
-            sortAscending: Bool,
+            columns: [String], rows: [[String]],
+            hasMoreData: Bool, isLoadingMore: Bool,
+            sortColumn: String?, sortAscending: Bool,
             onLoadMore: @escaping () -> Void,
             onSort: ((String) -> Void)?,
             onCopyCell: ((Int, Int) -> Void)?,
@@ -266,247 +184,176 @@ struct ParquetTableView: NSViewRepresentable {
             self.onCopyColumnNames = onCopyColumnNames
             super.init()
         }
-        
-        // MARK: - NSTableViewDataSource
-        
-        func numberOfRows(in tableView: NSTableView) -> Int {
-            return rows.count
-        }
-        
-        func tableView(_ tableView: NSTableView, objectValueFor tableColumn: NSTableColumn?, row: Int) -> Any? {
-            guard row < rows.count else { return nil }
 
-            if tableView == rowNumbersTable {
-                // Row numbers table: generate row number
-                return String(row + 1)
-            } else {
-                // Data table: return data column
-                guard let identifier = tableColumn?.identifier else { return nil }
-                if let colIndexString = identifier.rawValue.split(separator: "_").last,
-                   let colIndex = Int(colIndexString) {
-                    if colIndex < rows[row].count {
-                        return rows[row][colIndex]
-                    }
-                }
-            }
+        // MARK: - DataSource
 
-            return nil
-        }
-        
-        // MARK: - NSTableViewDelegate
-        
+        func numberOfRows(in tableView: NSTableView) -> Int { rows.count }
+
+        // MARK: - Delegate
+
         func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-            guard row < rows.count else { return nil }
+            guard row < rows.count, let identifier = tableColumn?.identifier else { return nil }
 
-            // Reuse or create cell view
-            let cellIdentifier = NSUserInterfaceItemIdentifier("DataCell")
-            var cellView = tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+            let cellId = NSUserInterfaceItemIdentifier("DataCell")
+            var cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSTableCellView
 
-            if cellView == nil {
-                let newCellView = NSTableCellView()
-                newCellView.identifier = cellIdentifier
-
-                let textField = NSTextField()
-                textField.isBordered = false
-                textField.backgroundColor = .clear
-                textField.isEditable = false
-                textField.lineBreakMode = .byTruncatingTail
-                textField.maximumNumberOfLines = 1
-
-                newCellView.textField = textField
-                newCellView.addSubview(textField)
-
-                // Auto Layout
-                textField.translatesAutoresizingMaskIntoConstraints = false
+            if cell == nil {
+                let c = NSTableCellView()
+                c.identifier = cellId
+                let tf = NSTextField()
+                tf.isBordered = false
+                tf.backgroundColor = .clear
+                tf.isEditable = false
+                tf.lineBreakMode = .byTruncatingTail
+                tf.maximumNumberOfLines = 1
+                c.textField = tf
+                c.addSubview(tf)
+                tf.translatesAutoresizingMaskIntoConstraints = false
                 NSLayoutConstraint.activate([
-                    textField.leadingAnchor.constraint(equalTo: newCellView.leadingAnchor, constant: 8),
-                    textField.trailingAnchor.constraint(equalTo: newCellView.trailingAnchor, constant: -8),
-                    textField.centerYAnchor.constraint(equalTo: newCellView.centerYAnchor)
+                    tf.leadingAnchor.constraint(equalTo: c.leadingAnchor, constant: 8),
+                    tf.trailingAnchor.constraint(equalTo: c.trailingAnchor, constant: -8),
+                    tf.centerYAnchor.constraint(equalTo: c.centerYAnchor)
                 ])
-
-                cellView = newCellView
+                cell = c
             }
 
-            if tableView == rowNumbersTable {
-                // Row numbers table: generate and display row number
-                cellView?.textField?.stringValue = String(row + 1)
-                cellView?.textField?.alignment = .center
-                cellView?.textField?.textColor = .secondaryLabelColor
-                cellView?.textField?.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-            } else {
-                // Data table: display data column
-                guard let identifier = tableColumn?.identifier,
-                      let colIndexString = identifier.rawValue.split(separator: "_").last,
-                      let colIndex = Int(colIndexString),
-                      colIndex < rows[row].count else { return cellView }
+            let tf = cell?.textField
+            tf?.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
 
-                let value = rows[row][colIndex]
-                cellView?.textField?.stringValue = value
-
-                // Apply font size (from settings)
-                cellView?.textField?.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
-                cellView?.textField?.alignment = .left
-
-                // Color coding based on value type
-                if value == "NULL" {
-                    cellView?.textField?.textColor = .secondaryLabelColor
-                } else if value == "true" || value == "false" {
-                    cellView?.textField?.textColor = .systemBlue
-                } else if Double(value) != nil {
-                    cellView?.textField?.textColor = .systemPurple
-                } else {
-                    cellView?.textField?.textColor = .labelColor
-                }
+            if identifier.rawValue == "col_rownum" {
+                tf?.stringValue = String(row + 1)
+                tf?.alignment = .center
+                tf?.textColor = .secondaryLabelColor
+            } else if let idxStr = identifier.rawValue.split(separator: "_").last,
+                      let colIdx = Int(idxStr), colIdx < rows[row].count {
+                let value = rows[row][colIdx]
+                tf?.stringValue = value
+                tf?.alignment = .left
+                if value == "NULL" { tf?.textColor = .secondaryLabelColor }
+                else if value == "true" || value == "false" { tf?.textColor = .systemBlue }
+                else if Double(value) != nil { tf?.textColor = .systemPurple }
+                else { tf?.textColor = .labelColor }
             }
 
-            return cellView
+            return cell
         }
-        
-        func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-            return 28 // Match SwiftUI version row height
-        }
-        
-        // MARK: - Selection & Context Menu
-        
-        func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
-            return true
-        }
-        
-        // Click handling for row selection
-        func tableViewSelectionDidChange(_ notification: Notification) {
-            // Selection handled automatically by single table view
-        }
-        
-        // MARK: - NSMenuDelegate
-        
+
+        func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat { 28 }
+
+        func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { true }
+
+        func tableViewSelectionDidChange(_ notification: Notification) {}
+
+        // MARK: - Context Menu
+
         func menuNeedsUpdate(_ menu: NSMenu) {
             menu.removeAllItems()
-            
-            // Copy menu item
-            let copyItem = NSMenuItem(title: "Copy", action: #selector(copySelection), keyEquivalent: "c")
-            copyItem.keyEquivalentModifierMask = .command
-            copyItem.target = self
-            menu.addItem(copyItem)
+            let item = NSMenuItem(title: "Copy", action: #selector(copySelection), keyEquivalent: "c")
+            item.keyEquivalentModifierMask = .command
+            item.target = self
+            menu.addItem(item)
         }
-        
-        // Double click handler
-        @objc func tableDoubleClick(_ sender: Any) {
-            // Future: implement double-click behavior
-        }
-        
-        // Handle header click for column selection
+
+        @objc func tableDoubleClick(_ sender: Any) {}
+
         func tableView(_ tableView: NSTableView, mouseDownInHeaderOf tableColumn: NSTableColumn) {
-            guard tableView == dataTable else { return }
-            
-            // Select entire column
-            tableView.selectColumnIndexes(IndexSet(integer: tableView.column(withIdentifier: tableColumn.identifier)), byExtendingSelection: false)
+            guard tableColumn.identifier.rawValue != "col_rownum" else { return }
+            tableView.selectColumnIndexes(
+                IndexSet(integer: tableView.column(withIdentifier: tableColumn.identifier)),
+                byExtendingSelection: false
+            )
         }
-        
+
+        // MARK: - Copy
+
         @objc func copySelection() {
-            guard let dataTable = dataTable else { return }
+            guard let table = dataTable else { return }
+            let selectedRows = table.selectedRowIndexes
+            let selectedCols = table.selectedColumnIndexes
+            var text = ""
 
-            let selectedRows = dataTable.selectedRowIndexes
-            let selectedColumns = dataTable.selectedColumnIndexes
-
-            var textToCopy = ""
-
-            // CRITICAL: Check rows first! (User usually selects rows, not columns)
-            // Only treat as column selection if ONLY columns are selected (no rows)
-            if selectedRows.count > 0 && selectedColumns.count == 0 {
-                // Copy selected rows (most common case)
-                for rowIndex in selectedRows.sorted() {
-                    guard rowIndex < rows.count else { continue }
-                    let rowData = rows[rowIndex]
-                    textToCopy += rowData.joined(separator: "\t") + "\n"
+            if selectedRows.count > 0 && selectedCols.count == 0 {
+                for r in selectedRows.sorted() {
+                    guard r < rows.count else { continue }
+                    text += rows[r].joined(separator: "\t") + "\n"
                 }
-            } else if selectedColumns.count > 0 && selectedRows.count == 0 {
-                // Copy selected columns (explicit column selection)
-                for columnIndex in selectedColumns.sorted() {
-                    guard columnIndex < columns.count else { continue }
-
-                    // Copy column name first
-                    textToCopy += columns[columnIndex] + "\n"
-
-                    // Copy all rows in this column
-                    for rowIndex in 0..<rows.count {
-                        if rowIndex < rows.count && columnIndex < rows[rowIndex].count {
-                            textToCopy += rows[rowIndex][columnIndex] + "\n"
+            } else if selectedCols.count > 0 && selectedRows.count == 0 {
+                for c in selectedCols.sorted() {
+                    let dataIdx = dataColumnIndex(fromTableColumn: c)
+                    guard let di = dataIdx, di < columns.count else { continue }
+                    text += columns[di] + "\n"
+                    for r in 0..<rows.count where di < rows[r].count {
+                        text += rows[r][di] + "\n"
+                    }
+                    text += "\n"
+                }
+            } else if selectedRows.count > 0 && selectedCols.count > 0 {
+                for r in selectedRows.sorted() {
+                    guard r < rows.count else { continue }
+                    var rd: [String] = []
+                    for c in selectedCols.sorted() {
+                        if let di = dataColumnIndex(fromTableColumn: c), di < rows[r].count {
+                            rd.append(rows[r][di])
                         }
                     }
-                    textToCopy += "\n"
-                }
-            } else if selectedRows.count > 0 && selectedColumns.count > 0 {
-                // Both rows and columns selected - copy range
-                for rowIndex in selectedRows.sorted() {
-                    guard rowIndex < rows.count else { continue }
-                    var rowData: [String] = []
-                    for columnIndex in selectedColumns.sorted() {
-                        if columnIndex < rows[rowIndex].count {
-                            rowData.append(rows[rowIndex][columnIndex])
-                        }
-                    }
-                    textToCopy += rowData.joined(separator: "\t") + "\n"
+                    text += rd.joined(separator: "\t") + "\n"
                 }
             }
 
-            // Copy to clipboard
-            if !textToCopy.isEmpty {
-                let pasteboard = NSPasteboard.general
-                pasteboard.clearContents()
-                pasteboard.setString(textToCopy, forType: .string)
+            if !text.isEmpty {
+                let pb = NSPasteboard.general
+                pb.clearContents()
+                pb.setString(text, forType: .string)
             }
         }
-        
+
         func copyColumnNames() {
-            let columnNames = columns.joined(separator: "\t")
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(columnNames, forType: .string)
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(columns.joined(separator: "\t"), forType: .string)
         }
 
         func copyRow(at index: Int) {
             guard index < rows.count else { return }
-            let rowData = rows[index].joined(separator: "\t")
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(rowData, forType: .string)
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(rows[index].joined(separator: "\t"), forType: .string)
         }
 
-        func copyColumn(at index: Int) {
-            guard index < columns.count else { return }
-
-            var textToCopy = ""
-            // Copy column name first
-            textToCopy += columns[index] + "\n"
-
-            // Copy all rows in this column
-            for rowIndex in 0..<rows.count {
-                if rowIndex < rows.count && index < rows[rowIndex].count {
-                    textToCopy += rows[rowIndex][index] + "\n"
-                }
+        func copyColumn(at tableColIndex: Int) {
+            guard let di = dataColumnIndex(fromTableColumn: tableColIndex), di < columns.count else { return }
+            var text = columns[di] + "\n"
+            for r in 0..<rows.count where di < rows[r].count {
+                text += rows[r][di] + "\n"
             }
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(text, forType: .string)
+        }
 
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(textToCopy, forType: .string)
+        func handleSort(at tableColIndex: Int) {
+            guard let di = dataColumnIndex(fromTableColumn: tableColIndex), di < columns.count else { return }
+            onSort?(columns[di])
         }
-        
-        func handleSort(at index: Int) {
-            guard index < columns.count else { return }
-            let columnName = columns[index]
-            onSort?(columnName)
+
+        // MARK: - Helpers
+
+        /// Convert table column index to data column index (skipping row number column)
+        private func dataColumnIndex(fromTableColumn tableCol: Int) -> Int? {
+            guard let table = dataTable, tableCol < table.tableColumns.count else { return nil }
+            let id = table.tableColumns[tableCol].identifier.rawValue
+            guard id != "col_rownum",
+                  let idxStr = id.split(separator: "_").last,
+                  let idx = Int(idxStr) else { return nil }
+            return idx
         }
-        
+
         // MARK: - Pagination
 
         @objc func dataTableDidScroll(_ notification: Notification) {
-            // Check for pagination
-            if let tableView = dataTable, hasMoreData, !isLoadingMore {
-                let visibleRows = tableView.rows(in: tableView.visibleRect)
-                let lastVisibleRow = visibleRows.upperBound - 1
-
-                // Load more when near bottom (within 10 rows)
-                if lastVisibleRow >= rows.count - 10 {
+            if let table = dataTable, hasMoreData, !isLoadingMore {
+                let visible = table.rows(in: table.visibleRect)
+                if visible.upperBound - 1 >= rows.count - 10 {
                     onLoadMore()
                 }
             }
@@ -516,7 +363,6 @@ struct ParquetTableView: NSViewRepresentable {
 
 // MARK: - Table Header View
 
-// Header view for data table columns with per-column right-click
 class DataTableHeaderView: NSTableHeaderView {
     var onCopyColumn: ((Int) -> Void)?
     var onSortColumn: ((Int) -> Void)?
@@ -524,25 +370,20 @@ class DataTableHeaderView: NSTableHeaderView {
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
         let column = self.column(at: point)
-        
-        // Check if clicking on column resize area (near the edge)
+
         if self.tableView != nil, column >= 0 {
-            let columnRect = headerRect(ofColumn: column)
-            let rightEdge = columnRect.maxX
-            let isNearRightEdge = abs(point.x - rightEdge) < 5 // 5 pixels tolerance
-            
-            // If near edge, let the default resize behavior handle it
-            if isNearRightEdge {
+            // Skip sort for row number column
+            if let tv = self.tableView, tv.tableColumns[column].identifier.rawValue == "col_rownum" {
                 super.mouseDown(with: event)
                 return
             }
-            
-            // Only trigger sort on actual column header click (not drag)
-            if event.clickCount == 1 {
-                onSortColumn?(column)
+            let rect = headerRect(ofColumn: column)
+            if abs(point.x - rect.maxX) < 5 {
+                super.mouseDown(with: event)
+                return
             }
+            if event.clickCount == 1 { onSortColumn?(column) }
         }
-        
         super.mouseDown(with: event)
     }
 
@@ -550,17 +391,14 @@ class DataTableHeaderView: NSTableHeaderView {
         let point = convert(event.locationInWindow, from: nil)
         let column = self.column(at: point)
 
-        if column >= 0, let tableView = self.tableView, column < tableView.tableColumns.count {
-            // Get column name
-            let columnName = tableView.tableColumns[column].title
-
-            // Show menu
+        if column >= 0, let tv = self.tableView, column < tv.tableColumns.count {
+            let tc = tv.tableColumns[column]
+            guard tc.identifier.rawValue != "col_rownum" else { return }
             let menu = NSMenu()
-            let copyItem = NSMenuItem(title: "Copy Column \"\(columnName)\"", action: #selector(copyColumnAction), keyEquivalent: "")
-            copyItem.target = self
-            copyItem.representedObject = column
-            menu.addItem(copyItem)
-
+            let item = NSMenuItem(title: "Copy Column \"\(tc.title)\"", action: #selector(copyColumnAction), keyEquivalent: "")
+            item.target = self
+            item.representedObject = column
+            menu.addItem(item)
             NSMenu.popUpContextMenu(menu, with: event, for: self)
         } else {
             super.rightMouseDown(with: event)
@@ -568,13 +406,9 @@ class DataTableHeaderView: NSTableHeaderView {
     }
 
     @objc func copyColumnAction(_ sender: NSMenuItem) {
-        if let column = sender.representedObject as? Int {
-            onCopyColumn?(column)
-        }
+        if let col = sender.representedObject as? Int { onCopyColumn?(col) }
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     ParquetTableView(

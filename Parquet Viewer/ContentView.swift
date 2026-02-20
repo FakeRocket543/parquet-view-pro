@@ -3,9 +3,9 @@
 // SM-5: Main SwiftUI Interface
 
 import SwiftUI
+import Combine
 
 struct ContentView: View {
-    @StateObject private var dbManager = DuckDBManager()
     @StateObject private var tabManager = TabManager()
     @State private var selectedFile: URL?
     @State private var searchText = ""
@@ -16,6 +16,14 @@ struct ContentView: View {
     @AppStorage("recentFiles") private var recentFilesData: Data = Data()
     @AppStorage("tableFontSize") private var tableFontSize: Double = 13.0
     @FocusState private var isSearchFocused: Bool
+    
+    // Combine cancellables for notification subscriptions
+    @State private var cancellables = Set<AnyCancellable>()
+    
+    // Current tab's dbManager (computed from tabManager)
+    private var dbManager: DuckDBManager? {
+        tabManager.currentDBManager
+    }
     
     // Zoom state
     @State private var currentZoom: CGFloat = 1.0
@@ -38,7 +46,20 @@ struct ContentView: View {
             VStack(spacing: 0) {
                 // Tab bar (Pro only)
                 if FeatureFlags.tabsEnabled && !tabManager.tabs.isEmpty {
-                    TabBarView(tabManager: tabManager)
+                    TabBarView(
+                        tabManager: tabManager,
+                        onCreateEmptyTab: {
+                            if tabManager.addEmptyTab() {
+                                selectedFile = nil
+                            }
+                        },
+                        onCloseOtherTabs: { tabID in
+                            tabManager.closeOtherTabs(except: tabID)
+                        },
+                        onCloseAllTabs: {
+                            tabManager.closeAllTabs()
+                        }
+                    )
                     Divider()
                 }
                 
@@ -48,29 +69,35 @@ struct ContentView: View {
             }
         }
         .navigationTitle(FeatureFlags.appName)
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            for provider in providers {
+                _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                    guard let url = url, FileType.isSupported(url) else { return }
+                    DispatchQueue.main.async { self.loadFile(url: url) }
+                }
+            }
+            return true
+        }
         .onAppear {
-            setupNotifications()
-            setupTabNotifications()
+            setupNotificationsWithCombine()
+            setupTabNotificationsWithCombine()
             enableFullScreen()
         }
-        .onChange(of: tabManager.selectedTabID) { newValue in
-            // When tab changes, load the corresponding file
+        .onChange(of: tabManager.selectedTabID) { _ in
+            // Reset search text when switching tabs
+            searchText = ""
+            // Tab switched - data is already in the tab's dbManager, just update selectedFile
             if let currentTab = tabManager.currentTab, let fileURL = currentTab.fileURL {
                 selectedFile = fileURL
-                Task {
-                    await dbManager.loadParquet(url: fileURL)
-                }
             } else {
-                // Empty tab, show welcome screen
                 selectedFile = nil
-                dbManager.clearData()
             }
         }
         .toolbar {
             ToolbarItemGroup(placement: .automatic) {
                 Spacer()
                 
-                if !dbManager.rows.isEmpty {
+                if let manager = dbManager, !manager.rows.isEmpty {
                     Menu {
                         Button {
                             exportCSV()
@@ -105,11 +132,11 @@ struct ContentView: View {
             JumpToRowDialog(
                 jumpToRowNumber: $jumpToRowNumber,
                 jumpRowCount: $jumpRowCount,
-                totalRows: dbManager.totalRowCount,
+                totalRows: dbManager?.totalRowCount ?? 0,
                 onJump: {
-                    if let rowNum = Int(jumpToRowNumber), let rowCount = Int(jumpRowCount) {
+                    if let rowNum = Int(jumpToRowNumber), let rowCount = Int(jumpRowCount), let manager = dbManager {
                         Task {
-                            await dbManager.jumpToRow(rowNum, rowsToLoad: rowCount)
+                            await manager.jumpToRow(rowNum, rowsToLoad: rowCount)
                         }
                         showingJumpDialog = false
                     }
@@ -139,8 +166,8 @@ struct ContentView: View {
             Divider()
             
             // File Info
-            if let info = dbManager.fileInfo {
-                FileInfoSection(info: info, totalRows: dbManager.totalRowCount)
+            if let manager = dbManager, let info = manager.fileInfo {
+                FileInfoSection(info: info, totalRows: manager.totalRowCount)
             }
             
             // Open File Button
@@ -172,17 +199,22 @@ struct ContentView: View {
     
     // MARK: - Detail View
     
+    @ViewBuilder
     private var detailView: some View {
-        DetailView(
-            dbManager: dbManager,
-            selectedFile: $selectedFile,
-            searchText: $searchText,
-            isSearchFocused: $isSearchFocused,
-            showingJumpDialog: $showingJumpDialog,
-            jumpToRowNumber: $jumpToRowNumber,
-            jumpRowCount: $jumpRowCount,
-            openFile: openFile
-        )
+        if let manager = dbManager {
+            DetailView(
+                dbManager: manager,
+                selectedFile: $selectedFile,
+                searchText: $searchText,
+                isSearchFocused: $isSearchFocused,
+                showingJumpDialog: $showingJumpDialog,
+                jumpToRowNumber: $jumpToRowNumber,
+                jumpRowCount: $jumpRowCount,
+                openFile: openFile
+            )
+        } else {
+            WelcomeView(onOpen: openFile)
+        }
     }
     
     // MARK: - Actions
@@ -229,17 +261,19 @@ struct ContentView: View {
                 selectedFile = url
                 _ = tabManager.updateCurrentTab(fileURL: url)
                 Task {
-                    await dbManager.loadParquet(url: url)
+                    await currentTab.dbManager.loadParquet(url: url)
                 }
             } else {
                 // 創建新分頁
-                if tabManager.addTab(fileURL: url) {
+                if tabManager.addTab(fileURL: url),
+                   let newTab = tabManager.tabs.last {
+                    // 載入數據到新分頁的 dbManager
+                    Task {
+                        await newTab.dbManager.loadParquet(url: url)
+                    }
                     // 如果是最後一個檔案，切換到該分頁
                     if url == urls.last {
                         selectedFile = url
-                        Task {
-                            await dbManager.loadParquet(url: url)
-                        }
                     }
                 } else {
                     failedFiles.append(url.lastPathComponent)
@@ -295,6 +329,9 @@ struct ContentView: View {
             if let currentTab = tabManager.currentTab, currentTab.fileURL == nil {
                 // Update the current empty tab instead of creating new one
                 _ = tabManager.updateCurrentTab(fileURL: url)
+                Task {
+                    await currentTab.dbManager.loadParquet(url: url)
+                }
             } else {
                 // Create new tab
                 if !tabManager.addTab(fileURL: url) {
@@ -307,11 +344,20 @@ struct ContentView: View {
                     alert.runModal()
                     return
                 }
+                // Load data into the new tab's dbManager
+                if let newTab = tabManager.tabs.last {
+                    Task {
+                        await newTab.dbManager.loadParquet(url: url)
+                    }
+                }
             }
-        }
-        
-        Task {
-            await dbManager.loadParquet(url: url)
+        } else {
+            // No tabs - use current dbManager
+            if let manager = dbManager {
+                Task {
+                    await manager.loadParquet(url: url)
+                }
+            }
         }
     }
     
@@ -338,13 +384,14 @@ struct ContentView: View {
         }
         
         if panel.runModal() == .OK, let url = panel.url {
+            guard let manager = dbManager else { return }
             Task {
                 do {
                     switch format {
                     case .csv:
-                        try await dbManager.exportToCSV(url: url)
+                        try await manager.exportToCSV(url: url)
                     case .parquet:
-                        try await dbManager.exportToParquet(url: url)
+                        try await manager.exportToParquet(url: url)
                     }
                     
                     // Show success message
@@ -376,69 +423,109 @@ struct ContentView: View {
         }
     }
     
-    // MARK: - Notification Handlers
+    // MARK: - Notification Handlers (Combine)
 
-    private func setupNotifications() {
-        let handlers = NotificationHandlers(
-            dbManager: dbManager,
-            openFile: openFile,
-            exportCSV: exportCSV,
-            exportParquet: exportParquet,
-            increaseFontSize: increaseFontSize,
-            decreaseFontSize: decreaseFontSize,
-            resetFontSize: resetFontSize,
-            isSearchFocused: $isSearchFocused
-        )
-        handlers.setupNotifications()
-    }
-    
-    private func setupTabNotifications() {
-        guard FeatureFlags.tabsEnabled else { return }
-        
-        NotificationCenter.default.addObserver(
-            forName: .openFileFromTab,
-            object: nil,
-            queue: .main
-        ) { _ in
-            openFile()
-        }
-        
-        NotificationCenter.default.addObserver(
-            forName: .createEmptyTab,
-            object: nil,
-            queue: .main
-        ) { [weak tabManager] _ in
-            Task { @MainActor in
-                guard let tabManager = tabManager else { return }
-                
-                // Create empty tab in tab manager
-                if tabManager.addEmptyTab() {
-                    // Clear current file to show welcome screen
-                    selectedFile = nil
-                    dbManager.clearData()
+    private func setupNotificationsWithCombine() {
+        // Open file notification
+        NotificationCenter.default.publisher(for: .openFile)
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                openFile()
+            }
+            .store(in: &cancellables)
+
+        // Export CSV notification
+        NotificationCenter.default.publisher(for: .exportCSV)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
+                if let dbManager = tabManager?.currentDBManager, !dbManager.rows.isEmpty {
+                    exportCSV()
                 }
             }
-        }
+            .store(in: &cancellables)
+
+        // Export Parquet notification
+        NotificationCenter.default.publisher(for: .exportParquet)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
+                if let dbManager = tabManager?.currentDBManager, !dbManager.rows.isEmpty {
+                    exportParquet()
+                }
+            }
+            .store(in: &cancellables)
+
+        // Focus search notification
+        NotificationCenter.default.publisher(for: .focusSearch)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
+                if let dbManager = tabManager?.currentDBManager, !dbManager.rows.isEmpty {
+                    isSearchFocused = true
+                }
+            }
+            .store(in: &cancellables)
+
+        // Increase font size notification
+        NotificationCenter.default.publisher(for: .increaseFontSize)
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                increaseFontSize()
+            }
+            .store(in: &cancellables)
+
+        // Decrease font size notification
+        NotificationCenter.default.publisher(for: .decreaseFontSize)
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                decreaseFontSize()
+            }
+            .store(in: &cancellables)
+
+        // Reset font size notification
+        NotificationCenter.default.publisher(for: .resetFontSize)
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                resetFontSize()
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func setupTabNotificationsWithCombine() {
+        guard FeatureFlags.tabsEnabled else { return }
         
-        NotificationCenter.default.addObserver(
-            forName: .closeCurrentTab,
-            object: nil,
-            queue: .main
-        ) { [weak tabManager] _ in
-            Task { @MainActor in
+        // Open file from tab
+        NotificationCenter.default.publisher(for: .openFileFromTab)
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                openFile()
+            }
+            .store(in: &cancellables)
+        
+        // Create empty tab
+        NotificationCenter.default.publisher(for: .createEmptyTab)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
+                guard let tabManager = tabManager else { return }
+                if tabManager.addEmptyTab() {
+                    selectedFile = nil
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Close current tab
+        NotificationCenter.default.publisher(for: .closeCurrentTab)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
                 guard let tabManager = tabManager else { return }
                 if let selectedID = tabManager.selectedTabID {
                     tabManager.closeTab(id: selectedID)
                 }
             }
-        }
+            .store(in: &cancellables)
         
-        NotificationCenter.default.addObserver(
-            forName: .closeOtherTabs,
-            object: nil,
-            queue: .main
-        ) { [weak tabManager] notification in
-            Task { @MainActor in
+        // Close other tabs
+        NotificationCenter.default.publisher(for: .closeOtherTabs)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] notification in
                 guard let tabManager = tabManager else { return }
                 if let tabID = notification.userInfo?["tabID"] as? UUID {
                     tabManager.closeOtherTabs(except: tabID)
@@ -446,50 +533,42 @@ struct ContentView: View {
                     tabManager.closeOtherTabs(except: selectedID)
                 }
             }
-        }
+            .store(in: &cancellables)
         
-        NotificationCenter.default.addObserver(
-            forName: .closeAllTabs,
-            object: nil,
-            queue: .main
-        ) { [weak tabManager] _ in
-            Task { @MainActor in
+        // Close all tabs
+        NotificationCenter.default.publisher(for: .closeAllTabs)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
                 tabManager?.closeAllTabs()
             }
-        }
+            .store(in: &cancellables)
         
-        NotificationCenter.default.addObserver(
-            forName: .nextTab,
-            object: nil,
-            queue: .main
-        ) { [weak tabManager] _ in
-            Task { @MainActor in
+        // Next tab
+        NotificationCenter.default.publisher(for: .nextTab)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
                 tabManager?.selectNextTab()
             }
-        }
+            .store(in: &cancellables)
         
-        NotificationCenter.default.addObserver(
-            forName: .previousTab,
-            object: nil,
-            queue: .main
-        ) { [weak tabManager] _ in
-            Task { @MainActor in
+        // Previous tab
+        NotificationCenter.default.publisher(for: .previousTab)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] _ in
                 tabManager?.selectPreviousTab()
             }
-        }
+            .store(in: &cancellables)
         
-        NotificationCenter.default.addObserver(
-            forName: .selectTab,
-            object: nil,
-            queue: .main
-        ) { [weak tabManager] notification in
-            Task { @MainActor in
+        // Select tab by index
+        NotificationCenter.default.publisher(for: .selectTab)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak tabManager] notification in
                 guard let tabManager = tabManager,
                       let index = notification.userInfo?["index"] as? Int,
                       index < tabManager.tabs.count else { return }
                 tabManager.selectTab(id: tabManager.tabs[index].id)
             }
-        }
+            .store(in: &cancellables)
     }
     
     // MARK: - Zoom Functions

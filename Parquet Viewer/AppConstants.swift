@@ -51,47 +51,61 @@ enum DataConstants {
 enum FileType: String, CaseIterable {
     case parquet = "parquet"
     case csv = "csv"
+    case tsv = "tsv"
+    case json = "json"
+    case jsonl = "jsonl"
 
     var displayName: String {
         switch self {
         case .parquet: return "Parquet"
         case .csv: return "CSV"
+        case .tsv: return "TSV"
+        case .json: return "JSON"
+        case .jsonl: return "JSONL"
         }
     }
 
-    var fileExtension: String {
-        return self.rawValue
-    }
+    var fileExtension: String { rawValue }
+
+    var isCSVFamily: Bool { self == .csv || self == .tsv }
+    var isJSONFamily: Bool { self == .json || self == .jsonl }
 
     var duckDBReadFunction: String {
         switch self {
         case .parquet: return "read_parquet"
-        case .csv: return "read_csv"
+        case .csv, .tsv: return "read_csv"
+        case .json, .jsonl: return "read_json_auto"
         }
     }
 
-    /// Get DuckDB read function with parameters for CSV
-    func duckDBReadFunctionWithParams(path: String) -> String {
+    /// Build DuckDB FROM clause with appropriate parameters
+    func fromClause(path: String) -> String {
         switch self {
-        case .parquet: return "read_parquet('\(path)')"
-        case .csv: return "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, auto_detect=false)"
+        case .parquet:
+            return "read_parquet('\(path)')"
+        case .csv:
+            return "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=true)"
+        case .tsv:
+            return "read_csv('\(path)', delim='\t', header=true, ignore_errors=true, auto_detect=true)"
+        case .json:
+            return "read_json_auto('\(path)')"
+        case .jsonl:
+            return "read_json_auto('\(path)', format='newline_delimited')"
         }
     }
 
     /// Detect file type from URL
     static func from(url: URL) -> FileType? {
         let ext = url.pathExtension.lowercased()
+        // Handle .ndjson as JSONL
+        if ext == "ndjson" { return .jsonl }
         return FileType(rawValue: ext)
     }
 
-    /// Check if file type is supported
-    static func isSupported(_ url: URL) -> Bool {
-        return from(url: url) != nil
-    }
+    static func isSupported(_ url: URL) -> Bool { from(url: url) != nil }
 
-    /// Get all supported file extensions
     static var supportedExtensions: [String] {
-        return FileType.allCases.map { $0.fileExtension }
+        allCases.map { $0.fileExtension } + ["ndjson"]
     }
 }
 
@@ -199,7 +213,7 @@ enum SecurityError: LocalizedError {
         case .fileNotReadable:
             return "Please check file permissions and try again."
         case .unsupportedFileType:
-            return "Please select a Parquet or CSV file."
+            return "Please select a supported file (Parquet, CSV, TSV, JSON, JSONL)."
         case .pathTraversal:
             return "Please select a valid file path."
         case .accessDenied:
@@ -208,4 +222,25 @@ enum SecurityError: LocalizedError {
             return "Please contact support if you believe this is an error."
         }
     }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let openFile = Notification.Name("openFile")
+    static let exportCSV = Notification.Name("exportCSV")
+    static let exportParquet = Notification.Name("exportParquet")
+    static let focusSearch = Notification.Name("focusSearch")
+    static let increaseFontSize = Notification.Name("increaseFontSize")
+    static let decreaseFontSize = Notification.Name("decreaseFontSize")
+    static let resetFontSize = Notification.Name("resetFontSize")
+    static let toggleSidebar = Notification.Name("toggleSidebar")
+    static let openFileFromTab = Notification.Name("openFileFromTab")
+    static let createEmptyTab = Notification.Name("createEmptyTab")
+    static let closeCurrentTab = Notification.Name("closeCurrentTab")
+    static let closeOtherTabs = Notification.Name("closeOtherTabs")
+    static let closeAllTabs = Notification.Name("closeAllTabs")
+    static let nextTab = Notification.Name("nextTab")
+    static let previousTab = Notification.Name("previousTab")
+    static let selectTab = Notification.Name("selectTab")
 }

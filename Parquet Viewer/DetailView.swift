@@ -59,10 +59,17 @@ struct DetailView: View {
                             }
                         }
                     } else {
-                        // Data table - using extracted component
-                        DataTableComponent(
+                        // Data table - using ParquetTableView directly
+                        ParquetTableView(
                             columns: dbManager.columns,
                             rows: dbManager.rows,
+                            onLoadMore: {
+                                Task {
+                                    await dbManager.loadMoreData()
+                                }
+                            },
+                            hasMoreData: dbManager.hasMoreData,
+                            isLoadingMore: dbManager.isLoadingMore,
                             sortColumn: dbManager.sortColumn,
                             sortAscending: dbManager.sortAscending,
                             onSort: { columnName in

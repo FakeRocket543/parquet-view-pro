@@ -20,21 +20,18 @@ struct FileOpenDialog {
     static func present(completion: @escaping (SelectionResult) -> Void) {
         let panel = NSOpenPanel()
 
-        // Safely create UTType for parquet files
-        let parquetContentType = UTType(filenameExtension: "parquet")
+        // Safely create UTTypes for supported file formats
         var allowedTypes: [UTType] = []
-
-        if let parquetType = parquetContentType {
-            allowedTypes.append(parquetType)
+        for ext in ["parquet", "csv", "tsv", "json", "jsonl", "ndjson"] {
+            if let t = UTType(filenameExtension: ext) { allowedTypes.append(t) }
         }
-        allowedTypes.append(.commaSeparatedText)
 
         panel.allowedContentTypes = allowedTypes
-        panel.allowsMultipleSelection = FeatureFlags.tabsEnabled  // Pro feature: multiple selection
+        panel.allowsMultipleSelection = FeatureFlags.tabsEnabled
         panel.canChooseDirectories = false
         panel.message = FeatureFlags.tabsEnabled
-            ? "Select one or more Parquet/CSV files to view"
-            : "Select a Parquet or CSV file to view"
+            ? "Select one or more data files to view"
+            : "Select a data file to view"
 
         panel.begin { response in
             guard response == .OK else {

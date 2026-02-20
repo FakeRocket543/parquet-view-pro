@@ -24,6 +24,7 @@ class DuckDBManager: ObservableObject {
     @Published var columnStats: [String: ColumnStats] = [:]  // Column statistics
     @Published var sortColumn: String? = nil  // Current sort column
     @Published var sortAscending: Bool = true  // Sort direction
+    @Published var isLoadingMore: Bool = false  // Loading more data
 
     // CSV integrity check result (stored as optional for UI handling)
     var csvIssueResult: CSVIntegrityCheckResult? = nil
@@ -98,17 +99,19 @@ class DuckDBManager: ObservableObject {
     }
     
     /// Load a Parquet file with optional row limit and offset
-    func loadParquet(url: URL, limit: Int? = nil, offset: Int? = nil, quickPreview: Bool = false, skipIntegrityCheck: Bool = false) async {
+    func loadParquet(url: URL, limit: Int? = nil, offset: Int? = nil, quickPreview: Bool = false, skipIntegrityCheck: Bool = false, appendMode: Bool = false) async {
         await MainActor.run {
             isLoading = true
             errorMessage = nil
-            csvIssueResult = nil  // Reset previous issue
-            columns = []
-            rows = []
-            totalRowCount = 0
-            displayedRowCount = 0
+            if !appendMode {
+                csvIssueResult = nil  // Reset previous issue
+                columns = []
+                rows = []
+                totalRowCount = 0
+                displayedRowCount = 0
+            }
             loadingProgress = 0.0
-            loadingMessage = quickPreview ? "Quick preview loading..." : "Loading file..."
+            loadingMessage = quickPreview ? "Quick preview loading..." : (appendMode ? "Loading more data..." : "Loading file...")
         }
 
         currentFileURL = url
@@ -138,8 +141,8 @@ class DuckDBManager: ObservableObject {
                 throw SecurityError.unsupportedFileType(extension: url.pathExtension)
             }
 
-            // CSV integrity check (only for CSV files and when not explicitly skipped)
-            if fileType == .csv && !skipIntegrityCheck && !quickPreview {
+            // CSV integrity check (only for CSV/TSV files and when not explicitly skipped)
+            if fileType.isCSVFamily && !skipIntegrityCheck && !quickPreview {
                 let checkResult = CSVIntegrityChecker.check(url: url)
                 if !checkResult.isValid {
                     await MainActor.run {
@@ -154,14 +157,8 @@ class DuckDBManager: ObservableObject {
             var dataQuery: String
             let startOffset = offset ?? 0
 
-            // Build FROM clause based on file type with explicit parameters for CSV
-            let fromClause: String
-            if fileType == .csv {
-                // Use read_csv with explicit parameters for better parsing
-                fromClause = "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=false)"
-            } else {
-                fromClause = "\(fileType.duckDBReadFunction)('\(path)')"
-            }
+            // Build FROM clause based on file type
+            let fromClause = fileType.fromClause(path: path)
 
             // Build queries using validated file type
             countQuery = "SELECT COUNT(*) as count FROM \(fromClause)"
@@ -253,13 +250,18 @@ class DuckDBManager: ObservableObject {
 
             await MainActor.run {
                 self.columns = finalCols
-                self.rows = finalRows
-                self.totalRowCount = finalRowCount
-                self.displayedRowCount = finalDisplayCount
-                self.fileInfo = finalInfo
-                self.currentStartRow = startOffset
-                self.hasLoadedFile = true  // Mark that a file has been loaded
-                self.columnStats = finalStats
+                if appendMode {
+                    self.rows.append(contentsOf: finalRows)
+                    self.displayedRowCount = self.rows.count
+                } else {
+                    self.rows = finalRows
+                    self.totalRowCount = finalRowCount
+                    self.displayedRowCount = finalDisplayCount
+                    self.fileInfo = finalInfo
+                    self.columnStats = finalStats
+                }
+                self.currentStartRow = appendMode ? self.currentStartRow : startOffset
+                self.hasLoadedFile = true
                 self.loadingProgress = 1.0
                 self.loadingMessage = "Complete!"
                 self.isLoading = false
@@ -328,14 +330,8 @@ class DuckDBManager: ObservableObject {
             throw SecurityError.unsupportedFileType(extension: fileURL.pathExtension)
         }
 
-        // Build FROM clause based on file type with explicit parameters for CSV
-        let fromClause: String
-        if fileType == .csv {
-            // Use read_csv with explicit parameters for export compatibility
-            fromClause = "read_csv('\(sourcePath)', delim=',', quote='\"', escape='\"', header=true, auto_detect=false)"
-        } else {
-            fromClause = "\(fileType.duckDBReadFunction)('\(sourcePath)')"
-        }
+        // Build FROM clause based on file type
+        let fromClause = fileType.fromClause(path: sourcePath)
 
         // Build read query using validated file type
         let readQuery = "SELECT * FROM \(fromClause)"
@@ -375,6 +371,31 @@ class DuckDBManager: ObservableObject {
         
         // Load data from specified row
         await loadParquet(url: fileURL, limit: rowsToLoad, offset: offset)
+    }
+    
+    /// Load more data (pagination)
+    func loadMoreData() async {
+        guard let fileURL = currentFileURL else { return }
+        guard !isLoadingMore else { return }
+        guard displayedRowCount < totalRowCount else { return }
+        
+        let newOffset = displayedRowCount
+        guard newOffset < totalRowCount else { return }
+        
+        await MainActor.run {
+            self.isLoadingMore = true
+        }
+        
+        await loadParquet(url: fileURL, limit: maxDisplayRows, offset: newOffset, appendMode: true)
+        
+        await MainActor.run {
+            self.isLoadingMore = false
+        }
+    }
+    
+    /// Check if there is more data to load
+    var hasMoreData: Bool {
+        displayedRowCount < totalRowCount
     }
     
     /// Sort data by column
@@ -436,13 +457,8 @@ class DuckDBManager: ObservableObject {
     private func calculateColumnStats(path: String, columns: [String], fileType: FileType) async throws -> [String: ColumnStats] {
         guard let conn = connection else { return [:] }
 
-        // Build FROM clause based on file type with explicit parameters for CSV
-        let fromClause: String
-        if fileType == .csv {
-            fromClause = "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=false)"
-        } else {
-            fromClause = "\(fileType.duckDBReadFunction)('\(path)')"
-        }
+        // Build FROM clause based on file type
+        let fromClause = fileType.fromClause(path: path)
 
         var stats: [String: ColumnStats] = [:]
         let totalColumns = columns.count
@@ -530,14 +546,8 @@ class DuckDBManager: ObservableObject {
                 throw SecurityError.unsupportedFileType(extension: fileURL.pathExtension)
             }
 
-            // Build FROM clause based on file type with explicit parameters for CSV
-            let fromClause: String
-            if fileType == .csv {
-                // Use read_csv with explicit parameters for better parsing
-                fromClause = "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=false)"
-            } else {
-                fromClause = "\(fileType.duckDBReadFunction)('\(path)')"
-            }
+            // Build FROM clause based on file type
+            let fromClause = fileType.fromClause(path: path)
 
             var whereClause = ""
             if let col = column {
