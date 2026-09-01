@@ -34,6 +34,23 @@ final class TabManagerTests: XCTestCase {
         XCTAssertEqual(sut.selectedTabID, sut.tabs.first?.id)
     }
     
+    func testReloadSettingsPicksUpMaxTabs() {
+        UserDefaults.standard.set(3, forKey: "maxTabs")
+        defer { UserDefaults.standard.removeObject(forKey: "maxTabs") }
+
+        let tm = TabManager()
+        XCTAssertEqual(tm.maxTabs, 3, "stored value must win at init")
+
+        UserDefaults.standard.set(7, forKey: "maxTabs")
+        XCTAssertEqual(tm.maxTabs, 3, "@AppStorage-in-ObservableObject never refreshes — by design")
+        tm.reloadSettings()
+        XCTAssertEqual(tm.maxTabs, 7, "reloadSettings must re-read the default")
+
+        UserDefaults.standard.removeObject(forKey: "maxTabs")
+        tm.reloadSettings()
+        XCTAssertEqual(tm.maxTabs, DefaultSettings.maxTabCount, "no stored value → default")
+    }
+
     func testAddEmptyTab() async throws {
         let result = sut.addEmptyTab()
         

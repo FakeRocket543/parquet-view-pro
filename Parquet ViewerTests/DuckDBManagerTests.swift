@@ -12,7 +12,7 @@ final class DuckDBManagerTests: XCTestCase {
 
     override func tearDown() async throws {
         sut = nil
-        try TestHelpers.cleanupTempDirectory()
+        try? TestHelpers.cleanupTempDirectory()
         try await super.tearDown()
     }
 
@@ -233,7 +233,9 @@ final class DuckDBManagerTests: XCTestCase {
 
         await sut.filterData(searchText: "Alice")
 
-        XCTAssertGreaterThan(sut.rows.count, 0)
+        XCTAssertEqual(sut.rows.count, 2, "exactly Alice and Alice Wang match")
+        let nameIdx = sut.columns.firstIndex(of: "name")!
+        XCTAssertTrue(sut.rows.allSatisfy { $0[nameIdx].contains("Alice") })
     }
 
     func testFilterData_byColumn() async throws {

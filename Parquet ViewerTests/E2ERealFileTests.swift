@@ -6,13 +6,27 @@ import DuckDB
 /// the real DuckDBManager, covering type fidelity, pagination, filtering,
 /// sorting, format handling and security edge cases.
 final class E2ERealFileTests: XCTestCase {
+    /// Per-test UUID directory: parallel test workers would otherwise wipe
+    /// each other's fixtures (swift test --parallel / CI). Memoized per test
+    /// case; setUp rotates it.
+    private static var cachedDir: URL?
+    private static let dirLock = NSLock()
+
     static var fixtureDir: URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("PVE2EFixtures")
+        dirLock.lock()
+        defer { dirLock.unlock() }
+        if let dir = cachedDir { return dir }
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("PVE2EFixtures-\(UUID().uuidString)")
+        cachedDir = dir
+        return dir
     }
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        try? FileManager.default.removeItem(at: Self.fixtureDir)
+        Self.dirLock.lock()
+        Self.cachedDir = nil
+        Self.dirLock.unlock()
         try FileManager.default.createDirectory(at: Self.fixtureDir, withIntermediateDirectories: true)
         // Determinism: page size and language must not depend on the
         // developer machine's defaults
@@ -22,6 +36,7 @@ final class E2ERealFileTests: XCTestCase {
 
     override func tearDown() {
         super.tearDown()
+        try? FileManager.default.removeItem(at: Self.fixtureDir)
         UserDefaults.standard.removeObject(forKey: "maxRows")
         UserDefaults.standard.removeObject(forKey: "AppleLanguages")
     }
@@ -550,6 +565,89 @@ final class E2ERealFileTests: XCTestCase {
         XCTAssertEqual(mgr.columnStats["n"]?.avgValue, "20.0000")
         XCTAssertEqual(mgr.columnStats["s"]?.nullCount, 1)
         XCTAssertEqual(mgr.columnStats["s"]?.uniqueCount, 2)
+    }
+
+    // MARK: - Round 4 coverage gaps
+
+    func testExportToParquetRoundTripAndSelfOverwriteGuard() async throws {
+        let src = try write("exp_src.csv", "id,name\n1,alpha\n2,beta\n")
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: src, skipIntegrityCheck: true)
+        XCTAssertNil(mgr.errorMessage)
+
+        // Parquet export → reloadable with identical values
+        let dst = Self.fixtureDir.appendingPathComponent("exp_out.parquet")
+        try? FileManager.default.removeItem(at: dst)
+        try await mgr.exportToParquet(url: dst)
+
+        let reader = DuckDBManager()
+        await reader.loadParquet(url: dst)
+        XCTAssertNil(reader.errorMessage, "\(reader.errorMessage ?? "")")
+        XCTAssertEqual(reader.columns, ["id", "name"])
+        XCTAssertEqual(reader.rows, [["1", "alpha"], ["2", "beta"]])
+
+        // Self-overwrite guard: exporting onto the open source must throw
+        do {
+            try await mgr.exportToCSV(url: src)
+            XCTFail("export onto the open source file must be refused")
+        } catch {
+            // expected
+        }
+        // …and the source must still be intact afterwards
+        let content = try String(contentsOf: src, encoding: .utf8)
+        XCTAssertTrue(content.contains("alpha"))
+    }
+
+    func testRegisterTempFileRemovedByClearData() async throws {
+        let mgr = DuckDBManager()
+        let tmp = FileManager.default.temporaryDirectory
+            .appendingPathComponent("skipped_\(UUID().uuidString)_x.csv")
+        try "a,b\n1,2\n".write(to: tmp, atomically: true, encoding: .utf8)
+
+        mgr.registerTempFile(tmp)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: tmp.path))
+
+        await MainActor.run { mgr.clearData() }
+        XCTAssertFalse(FileManager.default.fileExists(atPath: tmp.path),
+                       "clearData must remove registered temp files")
+    }
+
+    func testSortWithDuplicateKeysPaginatesWithoutLossOrDuplication() async throws {
+        // Sorting a constant column: all keys tie, so OFFSET pages stay
+        // coherent only with the tiebreaker columns
+        let url = try makeParquet("ties.parquet", sql: """
+            SELECT 'x' AS k, i FROM range(1, 2501) t(i)
+            """)
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: url, limit: 1000)
+        XCTAssertNil(mgr.errorMessage)
+
+        await mgr.sortByColumn("k", ascending: true)
+        await mgr.loadMoreData()
+        await mgr.loadMoreData()
+
+        let iIdx = try XCTUnwrap(mgr.columns.firstIndex(of: "i"))
+        let ids = mgr.rows.compactMap { Int($0[iIdx]) }
+        XCTAssertEqual(ids.count, 2500, "all rows must be reachable across pages")
+        XCTAssertEqual(Set(ids).count, ids.count, "no duplicated rows across OFFSET pages")
+        XCTAssertEqual(ids.min(), 1)
+        XCTAssertEqual(ids.max(), 2500)
+    }
+
+    func testResetFilterClearsStateWithoutReload() async throws {
+        let url = try write("rf.csv", "id,tag\n1,alpha\n2,beta\n3,gamma\n")
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: url, skipIntegrityCheck: true)
+        await mgr.filterData(searchText: "beta")
+        XCTAssertEqual(mgr.totalRowCount, 1)
+
+        mgr.resetFilter()
+        XCTAssertNil(mgr.activeFilterText)
+        XCTAssertNil(mgr.activeFilterColumn)
+
+        // A subsequent load of the same file must be unfiltered
+        await mgr.loadParquet(url: url, skipIntegrityCheck: true)
+        XCTAssertEqual(mgr.totalRowCount, 3)
     }
 
     // MARK: - Security

@@ -9,6 +9,10 @@
 
 import Foundation
 
+#if canImport(ObjectiveC)
+import ObjectiveC
+#endif
+
 enum L10nBundle {
     /// Resource bundle containing the .lproj tables (SPM generates this).
     static let module: Bundle = Bundle.module
@@ -42,7 +46,9 @@ enum L10nBundle {
     static let enFallback: Bundle = bundle(forCode: "en") ?? module
 
     /// Preferred table, memoized per AppleLanguages value — the expensive
-    /// path scan only reruns when the preference actually changes.
+    /// path scan only reruns when the preference actually changes. Locked:
+    /// `.localized` also runs on background threads (integrity checker).
+    private static let cacheLock = NSLock()
     private static var cachedKey: [String] = []
     private static var cachedBundle: Bundle = resolvePreferred([])
 
@@ -68,11 +74,14 @@ enum L10nBundle {
     /// Bundle for the preferred language, or the English fallback table.
     static var preferred: Bundle {
         let codes = UserDefaults.standard.stringArray(forKey: "AppleLanguages") ?? []
+        cacheLock.lock()
         if codes != cachedKey {
             cachedKey = codes
             cachedBundle = resolvePreferred(codes)
         }
-        return cachedBundle
+        let bundle = cachedBundle
+        cacheLock.unlock()
+        return bundle
     }
 }
 

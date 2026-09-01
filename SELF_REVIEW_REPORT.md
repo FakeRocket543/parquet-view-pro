@@ -250,3 +250,48 @@
 
 - **106 tests, 0 failures**（E2E 31 + Localization 4 + 單元 71）；GUI 冒煙通過；15 語系 lint + 同位全過
 - 三輪累計：73 → 106 測試；兩個 P0、15 個 P1、20+ 個 P2/P3 修復；全部由測試釘住
+
+---
+
+# Round 4（2026-09-02，v1.3.0 發佈後）
+
+## R4.0 發佈
+- `master` → `4d3de8b` 推送 + 標籤 **v1.3.0** 上遠端（release agent 驗證：版本一致、15 語系、筆記屬實、tag 自洽；CI 在私有 Gitea 上為「待 GitHub 鏡像後生效」）
+- **Release E2E**：`build_pro.sh` 全跑 — DMG 產出、bundle 可啟動、資源 bundle 內含 15 語系（腳本修復後首次實測）
+
+## R4.1 影響所有使用者的 P1（a11y agent 發現）
+
+| 問題 | 修復 |
+|---|---|
+| **每次搜尋/滾動載入都把整個表格換成 LoadingView** — 焦點、捲動位置、選取全毀；跳行後無限滾動「回彈到頂部」，實質不可用 | 首次載入後資料區**永不卸載**：載入中顯示內嵌進度條、表格保持互動；CSV 警示改為 sheet 疊加（表格在背後可見） |
+| 重複開啟已開檔案 → `addTab` 回 true 但沒建 tab → 資料載進 `tabs.last`（A 分頁標題顯示 B 的資料） | 載入前先查已存在分頁 → 只選取不重載 |
+
+## R4.2 併發（actor agent）— 兩個真缺陷外科修復
+
+- `sortByColumn`/`toggleSort` 在協程池寫 @Published（SwiftUI 契約違反）→ `MainActor.run`
+- 排序語義：新排序結果沒有穩定「目前列」→ 排序一律回到 offset 0（原先保留舊 offset 造成「排序後顯示第 50 萬列起」的錯置視口）
+- **完整 actor 化設計已備妥**（`@MainActor` manager + 鎖保護 `DuckDBCore` 口袋，含逐步遷移圖）— agent 評估為 borderline，依其建議**暫緩執行**，設計存於本節供後續
+
+## R4.3 測試（audit agent，評級 B+）
+
+- **C1 平行測試修復（CI 阻斷級）**：`swift test --parallel`（CI 用的模式）因共享 fixture 目錄互刪而紅 — 改每類/每測試 UUID 目錄，三次連跑穩定
+- **+9 測試（106 → 115）**：Parquet 匯出往返 + 自我覆寫防護、`registerTempFile` 清理生命週期、**平手鍵排序跨頁不重不漏**（mutation 證實的缺口）、`sniffDelimiter` 單元、`resetFilter`、`fromClause`/副檔名矩陣、`reloadSettings`、修復動作鍵值解析
+- 弱斷言收緊（filterData 精確斷言 2 列 + 全列匹配）；C5 `L10nBundle` 快取上鎖（背景執行緒 `.localized` 競態）
+
+## R4.4 UX/鍵盤/無障礙快速修復
+
+Settings **⌘,** 指令 + Esc/Return 快捷；⌘F 守衛改 `hasLoadedFile`（搜尋零結果時不再失效）；行高隨字體（大字不再裁切）；Retry 改用 `currentFileURL ?? selectedFile`（修復後的重試不再打回原壞檔）；a11y 標籤在地化
+
+## R4.5 誠實記錄：本輪未修（a11y agent P1-2/3 等）
+
+1. **鍵盤排序與 ⌘C 複製**：排序僅存在於表頭滑鼠點擊；⌘C 只在右鍵選單內有效、單 cell 無法複製 — 需要 View 選單命令 + responder-chain 設計
+2. 向上分頁（跳行後往上滾到視窗頂即止）
+3. 批次開檔的自動關閉 modal、落在最後一個分頁、重複時計數錯位
+4. 視窗外滑動的「快進」artifact（視窗滑移後捲軸錨定）
+5. `skipped_<UUID>` 暫存名顯示在側欄
+6. tab 無障礙特徵（isSelected、關閉鈕標籤）
+7. DuckDBCore actor 重構（設計已備）
+
+## R4.6 Round 4 證據
+
+**115 tests, 0 failures**（E2E 35 + Logic 4 + L10n 4 + 單元 72）+ 平行模式 3 連綠 + GUI 冒煙通過 + release DMG 實測啟動

@@ -575,32 +575,36 @@ class DuckDBManager: ObservableObject {
         guard let fileURL = currentFileURL else { return }
         guard columns.contains(columnName) else { return }
 
-        let startRow: Int
-        dbLock.lock()
-        sortColumn = columnName
-        sortAscending = ascending
-        startRow = currentStartRow
-        dbLock.unlock()
+        // @Published state must be written on the main actor (this method
+        // runs on the cooperative pool); sorting also restarts the view at
+        // the top — a sorted result set has no stable "current row"
+        await MainActor.run {
+            self.sortColumn = columnName
+            self.sortAscending = ascending
+        }
 
-        // Reload data with sorting
-        await loadParquet(url: fileURL, limit: maxDisplayRows, offset: startRow)
+        // Reload data with sorting, from the top of the new order
+        await loadParquet(url: fileURL, limit: maxDisplayRows, offset: 0)
     }
 
     /// Toggle sort direction for current column
     func toggleSort(for columnName: String) async {
-        let startRow: Int
         dbLock.lock()
-        if sortColumn == columnName {
-            sortAscending.toggle()
-        } else {
-            sortColumn = columnName
-            sortAscending = true
-        }
-        startRow = currentStartRow
+        let currentSortCol = sortColumn
         dbLock.unlock()
 
+        await MainActor.run {
+            if self.sortColumn == columnName {
+                self.sortAscending.toggle()
+            } else {
+                self.sortColumn = columnName
+                self.sortAscending = true
+            }
+        }
+
         guard let fileURL = currentFileURL else { return }
-        await loadParquet(url: fileURL, limit: maxDisplayRows, offset: startRow)
+        // Sorted results restart at the top of the new order
+        await loadParquet(url: fileURL, limit: maxDisplayRows, offset: 0)
     }
     
     /// Calculate statistics on demand (called when user clicks Statistics button)

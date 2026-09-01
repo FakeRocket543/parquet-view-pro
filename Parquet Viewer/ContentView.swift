@@ -348,6 +348,14 @@ struct ContentView: View {
                     await currentTab.dbManager.loadParquet(url: url)
                 }
             } else {
+                // Re-opening an already-open file: select its existing tab —
+                // do NOT load into tabs.last (that would put this file's
+                // data into an unrelated tab while keeping its old title)
+                if let existing = tabManager.tabs.first(where: { $0.fileURL == url }) {
+                    tabManager.selectTab(id: existing.id)
+                    selectedFile = url
+                    return
+                }
                 // Create new tab
                 if !tabManager.addTab(fileURL: url) {
                     // Show alert if tab limit reached
@@ -471,11 +479,21 @@ struct ContentView: View {
             }
             .store(in: &cancellables)
 
+        // Settings (⌘,)
+        NotificationCenter.default.publisher(for: .showSettings)
+            .receive(on: DispatchQueue.main)
+            .sink { _ in
+                showingSettings = true
+            }
+            .store(in: &cancellables)
+
         // Focus search notification
         NotificationCenter.default.publisher(for: .focusSearch)
             .receive(on: DispatchQueue.main)
             .sink { [weak tabManager] _ in
-                if let dbManager = tabManager?.currentDBManager, !dbManager.rows.isEmpty {
+                // hasLoadedFile, not rows.isEmpty: a search that returned
+                // zero rows must not kill ⌘F exactly when it's needed most
+                if let dbManager = tabManager?.currentDBManager, dbManager.hasLoadedFile {
                     isSearchFocused = true
                 }
             }

@@ -64,7 +64,7 @@ struct SearchBarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Clear search")
+                    .accessibilityLabel("button.clear_search".localized)
                 }
             }
             .padding(8)
@@ -92,7 +92,7 @@ struct SearchBarView: View {
                     Image(systemName: "arrow.up.arrow.down")
                 }
                 .help("tooltip.jump_to_row".localized)
-                .accessibilityLabel("Jump to row")
+                .accessibilityLabel("tooltip.jump_to_row".localized)
                 .buttonStyle(.borderless)
             }
         }

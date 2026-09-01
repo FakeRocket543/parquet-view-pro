@@ -40,6 +40,15 @@ public struct ParquetViewApp: App {
                 .keyboardShortcut("e", modifiers: [.command, .option])
             }
 
+            // Settings (⌘,) — SwiftUI's Settings scene needs macOS 14;
+            // post the existing presentation path instead
+            CommandGroup(after: .appSettings) {
+                Button("button.settings".localized) {
+                    NotificationCenter.default.post(name: .showSettings, object: nil)
+                }
+                .keyboardShortcut(",", modifiers: .command)
+            }
+
             // Edit Menu
             CommandGroup(after: .pasteboard) {
                 Divider()

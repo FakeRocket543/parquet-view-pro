@@ -132,7 +132,7 @@ final class SecurityHelperTests: XCTestCase {
     
     func testValidateFilePath_parquetExtension() throws {
         let tempDir = FileManager.default.temporaryDirectory
-        let testFile = tempDir.appendingPathComponent("test.parquet")
+        let testFile = tempDir.appendingPathComponent("sec_test_\(UUID().uuidString).parquet")
         
         try "test".write(to: testFile, atomically: true, encoding: .utf8)
         
@@ -150,7 +150,7 @@ final class SecurityHelperTests: XCTestCase {
     
     func testValidateFilePath_csvExtension() throws {
         let tempDir = FileManager.default.temporaryDirectory
-        let testFile = tempDir.appendingPathComponent("test.csv")
+        let testFile = tempDir.appendingPathComponent("sec_test_\(UUID().uuidString).csv")
         
         try "test".write(to: testFile, atomically: true, encoding: .utf8)
         

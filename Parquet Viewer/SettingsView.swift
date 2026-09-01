@@ -30,6 +30,8 @@ struct SettingsView: View {
                         .font(.title2)
                 }
                 .buttonStyle(.plain)
+                .keyboardShortcut(.cancelAction)
+                .accessibilityLabel("alert.cancel".localized)
             }
             .padding()
             
@@ -167,6 +169,7 @@ struct SettingsView: View {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
             }
             .padding()
         }

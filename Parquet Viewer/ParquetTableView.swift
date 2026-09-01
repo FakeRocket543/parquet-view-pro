@@ -306,7 +306,10 @@ struct ParquetTableView: NSViewRepresentable {
             return cell
         }
 
-        func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat { 28 }
+        func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+            // Track the font size — a fixed 28pt clips at larger sizes
+            max(fontSize + 15, UIConstants.tableRowHeight)
+        }
 
         func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { true }
 

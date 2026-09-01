@@ -17,10 +17,12 @@ struct DetailView: View {
 
     var body: some View {
         Group {
-            if dbManager.isLoading {
+            if dbManager.isLoading && !dbManager.hasLoadedFile {
+                // Cold load only: nothing to keep on screen
                 LoadingView(progress: dbManager.loadingProgress, message: dbManager.loadingMessage)
-            } else if let csvIssue = dbManager.csvIssueResult,
+            } else if let csvIssue = dbManager.csvIssueResult, !dbManager.hasLoadedFile,
                       let fileURL = dbManager.currentFileURL ?? selectedFile {
+                // First-load integrity issue: nothing behind it
                 CSVIssueAlert(
                     checkResult: csvIssue,
                     fileURL: fileURL,
@@ -31,33 +33,84 @@ struct DetailView: View {
                         handleCSVRepairAction(action, fileURL: fileURL)
                     }
                 )
-            } else if let error = dbManager.errorMessage,
-                      !dbManager.hasLoadedFile || dbManager.rows.isEmpty {
-                // No data to show behind the error → full-screen
-                ErrorView(message: error, retry: retryAction)
             } else if !dbManager.hasLoadedFile {
-                // Show welcome screen only when no file has been loaded
-                WelcomeView(onOpen: openFile)
-            } else {
-                // Errors with data still on screen → dismissible banner above
-                // the table; the table (search, sort, export) stays usable
-                VStack(spacing: 0) {
-                    if let error = dbManager.errorMessage {
-                        ErrorBanner(message: error, onDismiss: {
-                            dbManager.errorMessage = nil
-                        }, onRetry: retryAction)
-                        Divider()
-                    }
-                    tableContent
+                if let error = dbManager.errorMessage {
+                    ErrorView(message: error, retry: retryAction)
+                } else {
+                    // Show welcome screen only when no file has been loaded
+                    WelcomeView(onOpen: openFile)
                 }
+            } else {
+                // Once a file is loaded the data area NEVER unmounts —
+                // searches, pagination and jumps show an inline progress
+                // strip so scroll position, selection and search focus
+                // survive; the CSV alert layers on top as a sheet
+                dataArea
+                    .sheet(isPresented: csvIssueSheetBinding) {
+                        if let csvIssue = dbManager.csvIssueResult,
+                           let fileURL = dbManager.currentFileURL ?? selectedFile {
+                            CSVIssueAlert(
+                                checkResult: csvIssue,
+                                fileURL: fileURL,
+                                onDismiss: { dbManager.csvIssueResult = nil },
+                                onAction: { action in
+                                    handleCSVRepairAction(action, fileURL: fileURL)
+                                }
+                            )
+                            .interactiveDismissDisabled(true)
+                        }
+                    }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var csvIssueSheetBinding: Binding<Bool> {
+        Binding(
+            get: { dbManager.csvIssueResult != nil && dbManager.hasLoadedFile },
+            set: { if !$0 { dbManager.csvIssueResult = nil } }
+        )
+    }
+
+    /// Search bar + table + overlays; survives reloads after first load
+    @ViewBuilder
+    private var dataArea: some View {
+        VStack(spacing: 0) {
+            if let error = dbManager.errorMessage, !dbManager.rows.isEmpty {
+                // Error with data on screen → dismissible banner; the table
+                // (search, sort, export) stays usable
+                ErrorBanner(message: error, onDismiss: {
+                    dbManager.errorMessage = nil
+                }, onRetry: retryAction)
+                Divider()
+            }
+
+            if dbManager.isLoading && !dbManager.rows.isEmpty {
+                // Reload in flight with data visible → inline strip, table
+                // stays mounted and interactive below
+                HStack(spacing: 8) {
+                    ProgressView(value: dbManager.loadingProgress, total: 1.0)
+                        .progressViewStyle(.linear)
+                        .frame(maxWidth: .infinity)
+                    Text(dbManager.loadingMessage)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                Divider()
+            }
+
+            tableContent
+        }
+    }
+
     private var retryAction: () -> Void {
         {
-            if let file = selectedFile {
+            // Prefer the file actually on screen (e.g. a repaired temp copy)
+            // over selectedFile, which may be the original broken file
+            if let file = dbManager.currentFileURL ?? selectedFile {
                 // Retry must not re-apply the filter that may have caused
                 // the failure — clear it, then reload the known-failed file
                 dbManager.resetFilter()
@@ -99,13 +152,27 @@ struct DetailView: View {
 
             Divider()
 
-            // Data table or empty search result message
+            // Data table, in-flight empty state, or empty search result
             if dbManager.rows.isEmpty {
-                // Show "No results" message when search returns empty
-                EmptyResultsView(searchText: searchText) {
-                    searchText = ""
-                    Task {
-                        await dbManager.filterData(searchText: "")
+                if dbManager.isLoading {
+                    VStack(spacing: 12) {
+                        Spacer()
+                        ProgressView()
+                        Text("loading.generic".localized)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let error = dbManager.errorMessage {
+                    ErrorView(message: error, retry: retryAction)
+                } else {
+                    // Show "No results" message when search returns empty
+                    EmptyResultsView(searchText: searchText) {
+                        searchText = ""
+                        Task {
+                            await dbManager.filterData(searchText: "")
+                        }
                     }
                 }
             } else {

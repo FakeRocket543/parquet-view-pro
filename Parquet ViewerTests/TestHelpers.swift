@@ -2,17 +2,32 @@ import Foundation
 @testable import ParquetViewLib
 
 enum TestHelpers {
+    /// Per-call UUID directory: parallel test workers would otherwise delete
+    /// each other's fixtures (swift test --parallel / CI)
+    private static var currentDir: URL?
+    private static let dirLock = NSLock()
+
     static var tempDirectory: URL {
-        FileManager.default.temporaryDirectory.appendingPathComponent("ParquetViewerTests")
+        dirLock.lock()
+        defer { dirLock.unlock() }
+        if let dir = currentDir { return dir }
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ParquetViewerTests-\(UUID().uuidString)")
+        currentDir = dir
+        return dir
     }
-    
+
     static func setupTempDirectory() throws {
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
     }
-    
+
     static func cleanupTempDirectory() throws {
-        if FileManager.default.fileExists(atPath: tempDirectory.path) {
-            try FileManager.default.removeItem(at: tempDirectory)
+        dirLock.lock()
+        let dir = currentDir
+        currentDir = nil
+        dirLock.unlock()
+        if let dir = dir, FileManager.default.fileExists(atPath: dir.path) {
+            try FileManager.default.removeItem(at: dir)
         }
     }
     
