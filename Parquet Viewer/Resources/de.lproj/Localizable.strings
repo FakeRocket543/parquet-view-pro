@@ -25,7 +25,7 @@
 "error.title" = "Fehler";
 "error.no_file" = "Keine Datei geladen";
 "error.no_connection" = "Keine Datenbankverbindung";
-"error.failed_to_load" = "Datei konnte nicht geladen werden";
+"error.failed_to_load" = "Datei konnte nicht geladen werden: %@";
 "settings.title" = "Einstellungen";
 "settings.appearance" = "Erscheinungsbild";
 "settings.theme" = "Design";
@@ -49,3 +49,96 @@
 "export.failed.title" = "Export fehlgeschlagen";
 "alert.ok" = "OK";
 "alert.cancel" = "Abbrechen";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "Datei öffnen...";
+"menu.close_tab" = "Tab schließen";
+"menu.find" = "Suchen...";
+"menu.tab" = "Tab";
+"menu.new_tab" = "Neuer Tab";
+"menu.close_other_tabs" = "Andere Tabs schließen";
+"menu.close_all_tabs" = "Alle Tabs schließen";
+"menu.next_tab" = "Nächster Tab";
+"menu.previous_tab" = "Vorheriger Tab";
+"menu.increase_font" = "Schriftgröße erhöhen";
+"menu.decrease_font" = "Schriftgröße verkleinern";
+"menu.reset_font" = "Schriftgröße zurücksetzen";
+"menu.about" = "Über %@";
+"export.as_csv" = "Als CSV exportieren";
+"export.as_parquet" = "Als Parquet exportieren";
+"export.menu" = "Exportieren";
+"button.open" = "Öffnen";
+"button.clear_search" = "Suche löschen";
+"button.quit" = "Beenden";
+"button.reset" = "Zurücksetzen";
+"tooltip.jump_to_row" = "Zu Zeile springen...";
+"tooltip.new_tab" = "Neuer Tab (⌘T)";
+"search.no_results" = "Keine Ergebnisse gefunden";
+"search.no_match" = "Keine Daten entsprechen „%@“";
+"file.no_data" = "Diese Datei enthält keine Daten";
+"search.rows_range" = "Zeilen %1$d-%2$d von %3$d";
+"search.action" = "Suchen";
+"loading.generic" = "Laden...";
+"jump.title" = "Zu Zeile springen";
+"jump.row_number" = "Zeilennummer (1 bis %d):";
+"jump.row_placeholder" = "Zeilennummer eingeben";
+"jump.rows_to_load" = "Anzahl der zu ladenden Zeilen:";
+"jump.rows_placeholder" = "Standard: 1000";
+"jump.recommended" = "(Empfohlen: 1000-%d)";
+"jump.info" = "Daten werden ab der angegebenen Zeile geladen";
+"jump.action" = "Springen";
+"csv.issue.title" = "CSV-Dateiproblem";
+"csv.issue.detected" = "Problem erkannt";
+"csv.action.ignore_and_load" = "Datei laden (Fehler ignorieren)";
+"csv.action.skip_last_row" = "Letzte Zeile überspringen und laden";
+"csv.action.open_external" = "In externem Editor korrigieren";
+"csv.action.retry_settings" = "Andere Parsoptionen versuchen";
+"csv.issue.not_found" = "Datei nicht gefunden";
+"csv.issue.empty" = "Datei ist leer";
+"csv.issue.encoding" = "Dateikodierung konnte nicht gelesen werden";
+"csv.issue.no_content" = "Datei hat keinen Inhalt";
+"csv.issue.header" = "Kopfzeile konnte nicht geparst werden";
+"csv.issue.unmatched_quotes" = "Nicht geschlossene Anführungszeichen in Zeile %d";
+"csv.issue.truncated" = "Letzte Zeile ist abgeschnitten (%1$d Spalten erwartet, %2$d gefunden)";
+"csv.issue.mismatch" = "Zeile %1$d hat eine falsche Spaltenanzahl (%2$d erwartet, %3$d gefunden)";
+"settings.features" = "Funktionen";
+"settings.multiple_tabs" = "Mehrere Tabs aktivieren";
+"settings.max_tabs_value" = "Max. Tabs: %d";
+"settings.max_tabs_description" = "Maximale Anzahl gleichzeitig geöffneter Tabs";
+"settings.relaunch_note" = "Wird nach dem Neustart wirksam";
+"settings.shortcuts" = "Tastaturkurzbefehle";
+"settings.theme.system" = "System";
+"settings.font_size" = "Tabellenschriftgröße: %d pt";
+"settings.font_default" = "%d (Standard)";
+"settings.font_hint" = "Mit Cmd +/- oder Cmd 0 die Schriftgröße in der Tabelle anpassen";
+"settings.language.restart" = "Starten Sie die App neu, damit die Sprachänderung wirksam wird.";
+"shortcuts.select_tab" = "Tab auswählen";
+"tab.untitled" = "Unbenannt";
+"tab.close_others" = "Andere schließen";
+"tab.close_all" = "Alle schließen";
+"table.copy" = "Kopieren";
+"table.copy_column" = "Spalte „%@“ kopieren";
+"fileinfo.sorted_by" = "Sortiert nach: %@";
+"dialog.select_multiple" = "Wählen Sie eine oder mehrere Datendateien zum Anzeigen aus";
+"dialog.select_single" = "Wählen Sie eine Datendatei zum Anzeigen aus";
+"alert.quit.title" = "%@ beenden";
+"alert.quit.message" = "Möchten Sie wirklich beenden? Alle geöffneten Tabs werden geschlossen.";
+"menu.select_tab" = "Tab %d auswählen";
+"settings.max_rows_value" = "Max. zu ladende Zeilen: %d";
+"settings.max_rows_note" = "Gilt für Dateien, die nach dieser Änderung geöffnet werden; höhere Werte können die Leistung beeinträchtigen";
+"settings.app" = "App";
+"batch.partial.title" = "Einige Dateien wurden nicht geöffnet";
+"batch.partial.detail" = "Erfolgreich geöffnet: %1$d
+Beim Öffnen fehlgeschlagen: %2$d
+
+Grund: Tab-Limit (%3$d) erreicht.
+
+Fehlgeschlagene Dateien:
+%4$@
+
+Tipp: Erhöhen Sie das Tab-Limit in den Einstellungen oder schließen Sie einige Tabs.";
+"batch.success.title" = "Dateien erfolgreich geöffnet";
+"batch.success.detail" = "%d Dateien wurden in separaten Tabs geöffnet.";
+"tabs.limit.title" = "Tab-Limit erreicht";
+"tabs.limit.detail" = "Maximal %d Tabs erlaubt. Schließen Sie einige Tabs oder erhöhen Sie das Limit in den Einstellungen.";
+"error.repair_write_failed" = "Reparierte Datei konnte nicht geschrieben werden: %@";

@@ -28,11 +28,14 @@ final class SecurityHelperTests: XCTestCase {
     }
     
     func testSanitizePath_withBackslash() {
+        // Backslashes are literal characters in DuckDB standard string
+        // literals — they must be preserved as-is (doubling them would make
+        // DuckDB look for a path that does not exist).
         let path = "C:\\path\\to\\file.parquet"
-        
+
         let result = SecurityHelper.sanitizePath(path)
-        
-        XCTAssertEqual(result, "C:\\\\path\\\\to\\\\file.parquet")
+
+        XCTAssertEqual(result, "C:\\path\\to\\file.parquet")
     }
     
     func testSanitizePath_sqlInjection() {

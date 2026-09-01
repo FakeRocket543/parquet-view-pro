@@ -14,27 +14,29 @@ struct JumpToRowDialog: View {
     var body: some View {
         VStack(spacing: 20) {
             // Title
-            Text("Jump to Row")
+            Text("jump.title".localized)
                 .font(.title2)
                 .bold()
             
             // Row number input
             VStack(alignment: .leading, spacing: 8) {
-                Text("Row Number (1 to \(totalRows)):")
+                Text("jump.row_number".localizedWithFormat(totalRows))
                     .font(.headline)
-                TextField("Enter row number", text: $jumpToRowNumber)
+                TextField("jump.row_placeholder".localized, text: $jumpToRowNumber)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 300)
+                    .onSubmit { if isValidInput { onJump() } }
             }
-            
+
             // Rows to load input
             VStack(alignment: .leading, spacing: 8) {
-                Text("Number of Rows to Load:")
+                Text("jump.rows_to_load".localized)
                     .font(.headline)
-                TextField("Default: 1000", text: $jumpRowCount)
+                TextField("jump.rows_placeholder".localized, text: $jumpRowCount)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 300)
-                Text("(Recommended: 1000-10000)")
+                    .onSubmit { if isValidInput { onJump() } }
+                Text("jump.recommended".localizedWithFormat(DataConstants.maxMaxRows))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -43,7 +45,7 @@ struct JumpToRowDialog: View {
             HStack(spacing: 8) {
                 Image(systemName: "info.circle")
                     .foregroundColor(.blue)
-                Text("Data will be loaded from the specified row onwards")
+                Text("jump.info".localized)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -51,12 +53,12 @@ struct JumpToRowDialog: View {
             
             // Buttons
             HStack(spacing: 12) {
-                Button("Cancel") {
+                Button("alert.cancel".localized) {
                     onCancel()
                 }
                 .keyboardShortcut(.cancelAction)
                 
-                Button("Jump") {
+                Button("jump.action".localized) {
                     onJump()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -73,8 +75,9 @@ struct JumpToRowDialog: View {
               let rowCount = Int(jumpRowCount) else {
             return false
         }
-        
-        return rowNum > 0 && rowNum <= totalRows && rowCount > 0 && rowCount <= 100000
+
+        return rowNum > 0 && rowNum <= totalRows
+            && rowCount > 0 && rowCount <= DataConstants.maxMaxRows
     }
 }
 

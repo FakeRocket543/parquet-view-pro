@@ -25,7 +25,7 @@
 "error.title" = "خطأ";
 "error.no_file" = "لم يتم تحميل أي ملف";
 "error.no_connection" = "لا يوجد اتصال بقاعدة البيانات";
-"error.failed_to_load" = "فشل تحميل الملف";
+"error.failed_to_load" = "فشل تحميل الملف: %@";
 "settings.title" = "الإعدادات";
 "settings.appearance" = "المظهر";
 "settings.theme" = "السمة";
@@ -49,3 +49,96 @@
 "export.failed.title" = "فشل التصدير";
 "alert.ok" = "موافق";
 "alert.cancel" = "إلغاء";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "فتح ملف...";
+"menu.close_tab" = "إغلاق علامة التبويب";
+"menu.find" = "بحث...";
+"menu.tab" = "علامة التبويب";
+"menu.new_tab" = "علامة تبويب جديدة";
+"menu.close_other_tabs" = "إغلاق علامات التبويب الأخرى";
+"menu.close_all_tabs" = "إغلاق جميع علامات التبويب";
+"menu.next_tab" = "علامة التبويب التالية";
+"menu.previous_tab" = "علامة التبويب السابقة";
+"menu.increase_font" = "تكبير حجم الخط";
+"menu.decrease_font" = "تصغير حجم الخط";
+"menu.reset_font" = "إعادة تعيين حجم الخط";
+"menu.about" = "حول %@";
+"export.as_csv" = "تصدير بصيغة CSV";
+"export.as_parquet" = "تصدير بصيغة Parquet";
+"export.menu" = "تصدير";
+"button.open" = "فتح";
+"button.clear_search" = "مسح البحث";
+"button.quit" = "إنهاء";
+"button.reset" = "إعادة تعيين";
+"tooltip.jump_to_row" = "الانتقال إلى صف...";
+"tooltip.new_tab" = "علامة تبويب جديدة (⌘T)";
+"search.no_results" = "لا توجد نتائج";
+"search.no_match" = "لا توجد بيانات تطابق '%@'";
+"file.no_data" = "لا يحتوي هذا الملف على بيانات";
+"search.rows_range" = "الصفوف %1$d-%2$d من %3$d";
+"search.action" = "بحث";
+"loading.generic" = "جارٍ التحميل...";
+"jump.title" = "الانتقال إلى صف";
+"jump.row_number" = "رقم الصف (من 1 إلى %d):";
+"jump.row_placeholder" = "أدخل رقم الصف";
+"jump.rows_to_load" = "عدد الصفوف المطلوب تحميلها:";
+"jump.rows_placeholder" = "الافتراضي: 1000";
+"jump.recommended" = "(يُنصح بـ 1000-%d)";
+"jump.info" = "سيتم تحميل البيانات من الصف المحدد وما بعده";
+"jump.action" = "انتقال";
+"csv.issue.title" = "مشكلة في ملف CSV";
+"csv.issue.detected" = "تم اكتشاف مشكلة";
+"csv.action.ignore_and_load" = "تحميل الملف (تجاهل الأخطاء)";
+"csv.action.skip_last_row" = "تخطي الصف الأخير والتحميل";
+"csv.action.open_external" = "الإصلاح في محرر خارجي";
+"csv.action.retry_settings" = "تجربة إعدادات تحليل مختلفة";
+"csv.issue.not_found" = "الملف غير موجود";
+"csv.issue.empty" = "الملف فارغ";
+"csv.issue.encoding" = "تعذر قراءة ترميز الملف";
+"csv.issue.no_content" = "الملف ليس فيه محتوى";
+"csv.issue.header" = "تعذر تحليل صف الرأس";
+"csv.issue.unmatched_quotes" = "علامات اقتباس غير مغلقة في السطر %d";
+"csv.issue.truncated" = "الصف الأخير غير مكتمل (كان متوقعًا %1$d عمودًا، ووُجد %2$d)";
+"csv.issue.mismatch" = "عدد الأعمدة في السطر %1$d غير صحيح (كان متوقعًا %2$d، ووُجد %3$d)";
+"settings.features" = "الميزات";
+"settings.multiple_tabs" = "تمكين علامات تبويب متعددة";
+"settings.max_tabs_value" = "الحد الأقصى لعلامات التبويب: %d";
+"settings.max_tabs_description" = "الحد الأقصى لعدد علامات التبويب التي يمكن فتحها في وقت واحد";
+"settings.relaunch_note" = "يسري المفعول بعد إعادة التشغيل";
+"settings.shortcuts" = "اختصارات لوحة المفاتيح";
+"settings.theme.system" = "النظام";
+"settings.font_size" = "حجم خط الجدول: %d pt";
+"settings.font_default" = "%d (الافتراضي)";
+"settings.font_hint" = "استخدم Cmd +/- أو Cmd 0 لضبط حجم الخط في الجدول";
+"settings.language.restart" = "أعد تشغيل التطبيق ليسري مفعول تغيير اللغة.";
+"shortcuts.select_tab" = "اختيار علامة تبويب";
+"tab.untitled" = "بدون عنوان";
+"tab.close_others" = "إغلاق الأخرى";
+"tab.close_all" = "إغلاق الكل";
+"table.copy" = "نسخ";
+"table.copy_column" = "نسخ العمود “%@”";
+"fileinfo.sorted_by" = "مرتّب حسب: %@";
+"dialog.select_multiple" = "اختر ملف بيانات واحدًا أو أكثر لعرضه";
+"dialog.select_single" = "اختر ملف بيانات لعرضه";
+"alert.quit.title" = "إنهاء %@";
+"alert.quit.message" = "هل تريد حقًا الإنهاء؟ سيتم إغلاق جميع علامات التبويب المفتوحة.";
+"menu.select_tab" = "اختيار علامة التبويب %d";
+"settings.max_rows_value" = "الحد الأقصى للصفوف المطلوب تحميلها: %d";
+"settings.max_rows_note" = "ينطبق على الملفات التي تُفتح بعد هذا التغيير؛ القيم العالية قد تؤثر على الأداء";
+"settings.app" = "التطبيق";
+"batch.partial.title" = "لم تُفتح بعض الملفات";
+"batch.partial.detail" = "تم فتحها بنجاح: %1$d
+فشل فتح: %2$d
+
+السبب: بلوغ حد علامات التبويب (%3$d).
+
+الملفات التي تعذر فتحها:
+%4$@
+
+تلميح: زد حد علامات التبويب في الإعدادات أو أغلق بعض علامات التبويب.";
+"batch.success.title" = "تم فتح الملفات بنجاح";
+"batch.success.detail" = "تم فتح %d من الملفات في علامات تبويب منفصلة.";
+"tabs.limit.title" = "تم بلوغ حد علامات التبويب";
+"tabs.limit.detail" = "الحد الأقصى المسموح به %d من علامات التبويب. أغلق بعض علامات التبويب أو زد الحد في الإعدادات.";
+"error.repair_write_failed" = "فشل كتابة الملف الذي تم إصلاحه: %@";

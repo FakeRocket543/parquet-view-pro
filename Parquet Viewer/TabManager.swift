@@ -21,7 +21,7 @@ class FileTab: ObservableObject, Identifiable {
         if let url = fileURL {
             self.displayName = url.lastPathComponent
         } else {
-            self.displayName = "Untitled"
+            self.displayName = "tab.untitled".localized
         }
     }
     
@@ -37,7 +37,20 @@ class FileTab: ObservableObject, Identifiable {
 class TabManager: ObservableObject {
     @Published var tabs: [FileTab] = []
     @Published var selectedTabID: UUID?
-    @AppStorage("maxTabs") var maxTabs: Int = DefaultSettings.maxTabCount
+    /// @AppStorage inside an ObservableObject never refreshes (DynamicProperty
+    /// update only runs for Views) — read the default directly and re-read on
+    /// settings-sheet dismissal via reloadSettings()
+    @Published var maxTabs: Int = TabManager.readMaxTabs()
+
+    /// Re-read cached settings (called when the Settings sheet closes)
+    func reloadSettings() {
+        maxTabs = Self.readMaxTabs()
+    }
+
+    private static func readMaxTabs() -> Int {
+        let stored = UserDefaults.standard.integer(forKey: "maxTabs")
+        return stored > 0 ? stored : DefaultSettings.maxTabCount
+    }
     
     var currentTab: FileTab? {
         guard let selectedTabID = selectedTabID else { return nil }
@@ -118,6 +131,9 @@ class TabManager: ObservableObject {
     }
     
     func closeOtherTabs(except id: UUID) {
+        // Guard: closing "others" around a tab that no longer exists must
+        // not wipe everything and select a ghost
+        guard tabs.contains(where: { $0.id == id }) else { return }
         tabs.removeAll { $0.id != id }
         selectedTabID = id
     }
@@ -186,7 +202,7 @@ struct TabBarView: View {
                             .frame(width: 30, height: 30)
                     }
                     .buttonStyle(.plain)
-                    .help("New Tab (?+T)")
+                    .help("tooltip.new_tab".localized)
                 }
             }
             .padding(.horizontal, 8)
@@ -251,13 +267,13 @@ struct TabItemView: View {
             isHovering = hovering
         }
         .contextMenu {
-            Button("Close") {
+            Button("menu.close".localized) {
                 onClose()
             }
-            Button("Close Others") {
+            Button("tab.close_others".localized) {
                 onCloseOthers()
             }
-            Button("Close All") {
+            Button("tab.close_all".localized) {
                 onCloseAll()
             }
         }
@@ -272,8 +288,10 @@ struct TabItemView: View {
         switch ext {
         case "parquet":
             return "doc.text.fill"
-        case "csv":
+        case "csv", "tsv":
             return "tablecells.fill"
+        case "json", "jsonl", "ndjson":
+            return "curlybraces.square.fill"
         default:
             return "doc.fill"
         }

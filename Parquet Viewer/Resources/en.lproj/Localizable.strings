@@ -1,12 +1,12 @@
 /* English Localization */
 
 /* App Name */
-"app.name" = "Parquet View";
+"app.name" = "Parquet View Pro";
 
 /* Menu Items */
 "menu.file" = "File";
-"menu.open" = "Open...";
-"menu.export" = "Export CSV...";
+"menu.open" = "Open File...";
+"menu.export" = "Export as CSV...";
 "menu.close" = "Close";
 
 /* Buttons */
@@ -19,7 +19,7 @@
 
 /* Welcome Screen */
 "welcome.title" = "Welcome to Parquet View";
-"welcome.subtitle" = "Open a Parquet or CSV file to get started";
+"welcome.subtitle" = "Open a data file to get started";
 "welcome.drag_drop" = "or drag and drop a file here";
 
 /* File Info */
@@ -36,13 +36,13 @@
 "search.placeholder" = "Search...";
 
 /* Loading */
-"loading.message" = "Loading Parquet file...";
+"loading.message" = "Loading file...";
 
 /* Error */
 "error.title" = "Error";
 "error.no_file" = "No file loaded";
 "error.no_connection" = "No database connection";
-"error.failed_to_load" = "Failed to load file";
+"error.failed_to_load" = "Failed to load file: %@";
 
 /* Settings */
 "settings.title" = "Settings";
@@ -56,7 +56,7 @@
 "settings.language.title" = "Display Language";
 "settings.language.auto" = "Auto (System)";
 "settings.language.english" = "English";
-"settings.language.chinese" = "????";
+"settings.language.chinese" = "Chinese (Traditional)";
 "settings.performance" = "Performance";
 "settings.max_rows" = "Max Rows to Load";
 "settings.max_rows_description" = "Higher values may impact performance";
@@ -72,3 +72,96 @@
 /* Alerts */
 "alert.ok" = "OK";
 "alert.cancel" = "Cancel";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "Open File...";
+"menu.close_tab" = "Close Tab";
+"menu.find" = "Find...";
+"menu.tab" = "Tab";
+"menu.new_tab" = "New Tab";
+"menu.close_other_tabs" = "Close Other Tabs";
+"menu.close_all_tabs" = "Close All Tabs";
+"menu.next_tab" = "Next Tab";
+"menu.previous_tab" = "Previous Tab";
+"menu.increase_font" = "Increase Font Size";
+"menu.decrease_font" = "Decrease Font Size";
+"menu.reset_font" = "Reset Font Size";
+"menu.about" = "About %@";
+"export.as_csv" = "Export as CSV";
+"export.as_parquet" = "Export as Parquet";
+"export.menu" = "Export";
+"button.open" = "Open";
+"button.clear_search" = "Clear Search";
+"button.quit" = "Quit";
+"button.reset" = "Reset";
+"tooltip.jump_to_row" = "Jump to row...";
+"tooltip.new_tab" = "New Tab (⌘T)";
+"search.no_results" = "No Results Found";
+"search.no_match" = "No data matches '%@'";
+"file.no_data" = "This file contains no data";
+"search.rows_range" = "Rows %1$d-%2$d of %3$d";
+"search.action" = "Search";
+"loading.generic" = "Loading...";
+"jump.title" = "Jump to Row";
+"jump.row_number" = "Row Number (1 to %d):";
+"jump.row_placeholder" = "Enter row number";
+"jump.rows_to_load" = "Number of Rows to Load:";
+"jump.rows_placeholder" = "Default: 1000";
+"jump.recommended" = "(Recommended: 1000-%d)";
+"jump.info" = "Data will be loaded from the specified row onwards";
+"jump.action" = "Jump";
+"csv.issue.title" = "CSV File Issue";
+"csv.issue.detected" = "Issue Detected";
+"csv.action.ignore_and_load" = "Load file (ignore errors)";
+"csv.action.skip_last_row" = "Skip last row and load";
+"csv.action.open_external" = "Fix in external editor";
+"csv.action.retry_settings" = "Try different parsing settings";
+"csv.issue.not_found" = "File not found";
+"csv.issue.empty" = "File is empty";
+"csv.issue.encoding" = "Unable to read file encoding";
+"csv.issue.no_content" = "File has no content";
+"csv.issue.header" = "Unable to parse header row";
+"csv.issue.unmatched_quotes" = "Unmatched quotes on line %d";
+"csv.issue.truncated" = "Last row is truncated (expected %1$d columns, found %2$d)";
+"csv.issue.mismatch" = "Line %1$d has wrong column count (expected %2$d, found %3$d)";
+"settings.features" = "Features";
+"settings.multiple_tabs" = "Enable Multiple Tabs";
+"settings.max_tabs_value" = "Maximum Tabs: %d";
+"settings.max_tabs_description" = "Maximum number of tabs that can be opened simultaneously";
+"settings.relaunch_note" = "Takes effect after relaunch";
+"settings.shortcuts" = "Keyboard Shortcuts";
+"settings.theme.system" = "System";
+"settings.font_size" = "Table Font Size: %d pt";
+"settings.font_default" = "%d (Default)";
+"settings.font_hint" = "Use Cmd +/- or Cmd 0 to adjust font size in the table";
+"settings.language.restart" = "Restart the app for the language change to take effect.";
+"shortcuts.select_tab" = "Select Tab";
+"tab.untitled" = "Untitled";
+"tab.close_others" = "Close Others";
+"tab.close_all" = "Close All";
+"table.copy" = "Copy";
+"table.copy_column" = "Copy Column \"%@\"";
+"fileinfo.sorted_by" = "Sorted by: %@";
+"dialog.select_multiple" = "Select one or more data files to view";
+"dialog.select_single" = "Select a data file to view";
+"alert.quit.title" = "Quit %@";
+"alert.quit.message" = "Are you sure you want to quit? All open tabs will be closed.";
+"menu.select_tab" = "Select Tab %d";
+"settings.max_rows_value" = "Max Rows to Load: %d";
+"settings.max_rows_note" = "Applies to files opened after this change; higher values may impact performance";
+"settings.app" = "App";
+"batch.partial.title" = "Some Files Not Opened";
+"batch.partial.detail" = "Successfully opened: %1$d
+Failed to open: %2$d
+
+Reason: Tab limit (%3$d) reached.
+
+Failed files:
+%4$@
+
+Tip: Increase the tab limit in Settings or close some tabs.";
+"batch.success.title" = "Files Opened Successfully";
+"batch.success.detail" = "Successfully opened %d files in separate tabs.";
+"tabs.limit.title" = "Tab Limit Reached";
+"tabs.limit.detail" = "Maximum %d tabs allowed. Close some tabs or increase the limit in Settings.";
+"error.repair_write_failed" = "Failed to write repaired file: %@";

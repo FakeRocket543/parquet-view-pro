@@ -8,10 +8,8 @@ struct SettingsView: View {
     @AppStorage("theme") private var theme: Theme = .system
     @AppStorage("language") private var language: Language = .english
     @AppStorage("maxRows") private var maxRows: Int = DataConstants.defaultMaxRows
-    @AppStorage("uiScale") private var uiScale: Double = 1.0
     @AppStorage("maxTabs") private var maxTabs: Int = DefaultSettings.maxTabCount
     @AppStorage("tabsEnabled") private var tabsEnabled: Bool = true
-    @AppStorage("zoomEnabled") private var zoomEnabled: Bool = true
     @AppStorage("tableFontSize") private var tableFontSize: Double = UIConstants.defaultTableFontSize
     
     @Environment(\.dismiss) private var dismiss
@@ -20,7 +18,7 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Settings")
+                Text("settings.title".localized)
                     .font(.title2)
                     .bold()
                 Spacer()
@@ -39,24 +37,18 @@ struct SettingsView: View {
             
             // Settings content
             Form {
-                Section("Appearance") {
-                    Picker("Theme", selection: $theme) {
+                Section("settings.appearance".localized) {
+                    Picker("settings.theme".localized, selection: $theme) {
                         ForEach(Theme.allCases) { theme in
-                            Text(theme.rawValue).tag(theme)
+                            Text(theme.localizedLabel).tag(theme)
                         }
                     }
                     
-                    Slider(value: $uiScale, in: 0.8...1.5, step: 0.1) {
-                        Text("UI Scale: \(String(format: "%.1f", uiScale))x")
-                    }
-                    
-                    Divider()
-                    
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Table Font Size: \(Int(tableFontSize)) pt")
+                            Text("settings.font_size".localizedWithFormat(Int(tableFontSize)))
                             Spacer()
-                            Button("Reset") {
+                            Button("button.reset".localized) {
                                 tableFontSize = UIConstants.defaultTableFontSize
                             }
                             .buttonStyle(.borderless)
@@ -72,7 +64,7 @@ struct SettingsView: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("\(Int(UIConstants.defaultTableFontSize)) (Default)")
+                            Text("settings.font_default".localizedWithFormat(Int(UIConstants.defaultTableFontSize)))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -81,66 +73,70 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        Text("Use Cmd +/- or Cmd 0 to adjust font size in the table")
+                        Text("settings.font_hint".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
                 
-                Section("Language") {
-                    Picker("Display Language", selection: $language) {
+                Section("settings.language".localized) {
+                    Picker("settings.language.title".localized, selection: $language) {
                         ForEach(Language.allCases) { lang in
                             Text(lang.rawValue).tag(lang)
                         }
                     }
+                    .onChange(of: language) { newValue in
+                        UserDefaults.standard.set([newValue.appleLanguageCode], forKey: "AppleLanguages")
+                    }
+
+                    Text("settings.language.restart".localized)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
-                Section("Performance") {
-                    Stepper("Max Rows to Load: \(maxRows)",
+                Section("settings.performance".localized) {
+                    Stepper("settings.max_rows_value".localizedWithFormat(maxRows),
                            value: $maxRows,
                            in: DataConstants.minMaxRows...DataConstants.maxMaxRows,
                            step: DataConstants.maxRowsStep)
 
-                    Text("Higher values may impact performance")
+                    Text("settings.max_rows_note".localized)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
                 // Feature toggles
-                Section("Features") {
-                    Toggle("Enable Multiple Tabs", isOn: $tabsEnabled)
+                Section("settings.features".localized) {
+                    Toggle("settings.multiple_tabs".localized, isOn: $tabsEnabled)
+
+                    Text("settings.relaunch_note".localized)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                     
                     if tabsEnabled {
-                        Stepper("Maximum Tabs: \(maxTabs)", 
+                        Stepper("settings.max_tabs_value".localizedWithFormat(maxTabs), 
                                 value: $maxTabs, 
                                 in: DefaultSettings.minTabCount...DefaultSettings.maxTabCountLimit, 
                                 step: 1)
                         
-                        Text("Maximum number of tabs that can be opened simultaneously")
+                        Text("settings.max_tabs_description".localized)
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                     
-                    Divider()
-                    
-                    Toggle("Enable Zoom", isOn: $zoomEnabled)
-                    
-                    Text("Allow pinch-to-zoom and Cmd+/- shortcuts")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
                 }
                 
-                Section("About") {
-                    LabeledContent("Version", value: FeatureFlags.versionString)
-                    LabeledContent("App", value: FeatureFlags.appName)
-                    LabeledContent("Build", value: "Swift + DuckDB")
+                Section("settings.about".localized) {
+                    LabeledContent("settings.version".localized, value: FeatureFlags.versionString)
+                    LabeledContent("settings.app".localized, value: FeatureFlags.appName)
+                    LabeledContent("settings.build".localized, value: "Swift + DuckDB")
                     
                     Divider()
                     
-                    DisclosureGroup("Keyboard Shortcuts") {
+                    DisclosureGroup("settings.shortcuts".localized) {
                         VStack(alignment: .leading, spacing: 8) {
-                            ShortcutRow(keys: "⌘O", action: "Open File")
-                            ShortcutRow(keys: "⌘F", action: "Search")
+                            ShortcutRow(keys: "⌘O", action: "menu.open_file".localized)
+                            ShortcutRow(keys: "⌘F", action: "search.action".localized)
                             ShortcutRow(keys: "⌘+", action: "Increase Font")
                             ShortcutRow(keys: "⌘-", action: "Decrease Font")
                             ShortcutRow(keys: "⌘0", action: "Reset Font")
@@ -148,17 +144,17 @@ struct SettingsView: View {
                             ShortcutRow(keys: "⌘⌥E", action: "Export Parquet")
                             if tabsEnabled {
                                 Divider()
-                                ShortcutRow(keys: "⌘T", action: "New Tab")
-                                ShortcutRow(keys: "⌘W", action: "Close Tab")
-                                ShortcutRow(keys: "⌘1-9", action: "Select Tab")
+                                ShortcutRow(keys: "⌘T", action: "menu.new_tab".localized)
+                                ShortcutRow(keys: "⌘⇧W", action: "menu.close_tab".localized)
+                                ShortcutRow(keys: "⌘1-9", action: "shortcuts.select_tab".localized)
                             }
                         }
                         .padding(.vertical, 8)
                     }
                     
-                    if let githubURL = URL(string: "https://github.com/yourusername/parquet-viewer") {
-                        Link("GitHub Repository", destination: githubURL)
-                    }
+                    Text("MIT License — see LICENSE in the repository")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
             .formStyle(.grouped)
@@ -167,7 +163,7 @@ struct SettingsView: View {
             // Footer
             HStack {
                 Spacer()
-                Button("Done") {
+                Button("button.done".localized) {
                     dismiss()
                 }
                 .buttonStyle(.borderedProminent)
@@ -184,15 +180,33 @@ enum Theme: String, CaseIterable, Identifiable {
     case light = "Light"
     case dark = "Dark"
     case system = "System"
-    
+
     var id: String { rawValue }
+
+    var localizedLabel: String {
+        switch self {
+        case .light: return "settings.theme.light".localized
+        case .dark: return "settings.theme.dark".localized
+        case .system: return "settings.theme.system".localized
+        }
+    }
 }
 
 enum Language: String, CaseIterable, Identifiable {
     case english = "English"
-    case chineseTraditional = "????"
-    
+    case simplifiedChinese = "简体中文"
+    case chineseTraditional = "繁體中文"
+
     var id: String { rawValue }
+
+    /// AppleLanguages code written on selection; applies after relaunch
+    var appleLanguageCode: String {
+        switch self {
+        case .english: return "en"
+        case .simplifiedChinese: return "zh-Hans"
+        case .chineseTraditional: return "zh-Hant"
+        }
+    }
 }
 
 // MARK: - Preview

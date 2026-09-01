@@ -25,7 +25,7 @@
 "error.title" = "ত্রুটি";
 "error.no_file" = "কোনো ফাইল লোড হয়নি";
 "error.no_connection" = "ডেটাবেস সংযোগ নেই";
-"error.failed_to_load" = "ফাইল লোড করতে ব্যর্থ";
+"error.failed_to_load" = "ফাইল লোড করতে ব্যর্থ: %@";
 "settings.title" = "সেটিংস";
 "settings.appearance" = "চেহারা";
 "settings.theme" = "থিম";
@@ -49,3 +49,96 @@
 "export.failed.title" = "রপ্তানি ব্যর্থ";
 "alert.ok" = "ঠিক আছে";
 "alert.cancel" = "বাতিল";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "ফাইল খুলুন...";
+"menu.close_tab" = "ট্যাব বন্ধ করুন";
+"menu.find" = "অনুসন্ধান...";
+"menu.tab" = "ট্যাব";
+"menu.new_tab" = "নতুন ট্যাব";
+"menu.close_other_tabs" = "অন্য ট্যাব বন্ধ করুন";
+"menu.close_all_tabs" = "সব ট্যাব বন্ধ করুন";
+"menu.next_tab" = "পরবর্তী ট্যাব";
+"menu.previous_tab" = "পূর্ববর্তী ট্যাব";
+"menu.increase_font" = "ফন্ট সাইজ বাড়ান";
+"menu.decrease_font" = "ফন্ট সাইজ কমান";
+"menu.reset_font" = "ফন্ট সাইজ রিসেট করুন";
+"menu.about" = "%@ সম্পর্কে";
+"export.as_csv" = "CSV হিসেবে রপ্তানি করুন";
+"export.as_parquet" = "Parquet হিসেবে রপ্তানি করুন";
+"export.menu" = "রপ্তানি";
+"button.open" = "খুলুন";
+"button.clear_search" = "অনুসন্ধান মুছুন";
+"button.quit" = "প্রস্থান";
+"button.reset" = "রিসেট";
+"tooltip.jump_to_row" = "সারিতে যান...";
+"tooltip.new_tab" = "নতুন ট্যাব (⌘T)";
+"search.no_results" = "কোনো ফলাফল পাওয়া যায়নি";
+"search.no_match" = "'%@' এর সাথে মেলে এমন কোনো ডেটা নেই";
+"file.no_data" = "এই ফাইলে কোনো ডেটা নেই";
+"search.rows_range" = "মোট %3$d এর মধ্যে সারি %1$d-%2$d";
+"search.action" = "অনুসন্ধান";
+"loading.generic" = "লোড হচ্ছে...";
+"jump.title" = "সারিতে যান";
+"jump.row_number" = "সারি নম্বর (1 থেকে %d):";
+"jump.row_placeholder" = "সারি নম্বর লিখুন";
+"jump.rows_to_load" = "লোড করার সারি সংখ্যা:";
+"jump.rows_placeholder" = "ডিফল্ট: 1000";
+"jump.recommended" = "(প্রস্তাবিত: 1000-%d)";
+"jump.info" = "নির্দিষ্ট সারি থেকে ডেটা লোড হবে";
+"jump.action" = "যান";
+"csv.issue.title" = "CSV ফাইল সমস্যা";
+"csv.issue.detected" = "সমস্যা শনাক্ত হয়েছে";
+"csv.action.ignore_and_load" = "ফাইল লোড করুন (ত্রুটি উপেক্ষা করুন)";
+"csv.action.skip_last_row" = "শেষ সারি এড়িয়ে লোড করুন";
+"csv.action.open_external" = "বাহ্যিক সম্পাদকে ঠিক করুন";
+"csv.action.retry_settings" = "ভিন্ন পার্সিং সেটিংস চেষ্টা করুন";
+"csv.issue.not_found" = "ফাইল পাওয়া যায়নি";
+"csv.issue.empty" = "ফাইলটি খালি";
+"csv.issue.encoding" = "ফাইলের এনকোডিং পড়া যায়নি";
+"csv.issue.no_content" = "ফাইলে কোনো বিষয়বস্তু নেই";
+"csv.issue.header" = "হেডার সারি পার্স করা যায়নি";
+"csv.issue.unmatched_quotes" = "%d নম্বর লাইনে অমিল উদ্ধৃতি চিহ্ন";
+"csv.issue.truncated" = "শেষ সারি অসম্পূর্ণ (প্রত্যাশিত %1$d কলাম, পাওয়া গেছে %2$d)";
+"csv.issue.mismatch" = "%1$d নম্বর লাইনের কলাম সংখ্যা ভুল (প্রত্যাশিত %2$d, পাওয়া গেছে %3$d)";
+"settings.features" = "ফিচার";
+"settings.multiple_tabs" = "একাধিক ট্যাব সক্ষম করুন";
+"settings.max_tabs_value" = "সর্বোচ্চ ট্যাব: %d";
+"settings.max_tabs_description" = "একসাথে খোলা যায় এমন সর্বোচ্চ ট্যাব সংখ্যা";
+"settings.relaunch_note" = "পুনরায় চালু করার পরে কার্যকর হবে";
+"settings.shortcuts" = "কীবোর্ড শর্টকাট";
+"settings.theme.system" = "সিস্টেম";
+"settings.font_size" = "টেবিল ফন্ট সাইজ: %d pt";
+"settings.font_default" = "%d (ডিফল্ট)";
+"settings.font_hint" = "টেবিলে ফন্ট সাইজ ঠিক করতে Cmd +/- বা Cmd 0 ব্যবহার করুন";
+"settings.language.restart" = "ভাষা পরিবর্তন কার্যকর করতে অ্যাপ পুনরায় চালু করুন।";
+"shortcuts.select_tab" = "ট্যাব নির্বাচন করুন";
+"tab.untitled" = "শিরোনামহীন";
+"tab.close_others" = "অন্যগুলো বন্ধ করুন";
+"tab.close_all" = "সব বন্ধ করুন";
+"table.copy" = "কপি";
+"table.copy_column" = "কলাম “%@” কপি করুন";
+"fileinfo.sorted_by" = "সাজানো হয়েছে: %@";
+"dialog.select_multiple" = "দেখার জন্য এক বা একাধিক ডেটা ফাইল নির্বাচন করুন";
+"dialog.select_single" = "দেখার জন্য একটি ডেটা ফাইল নির্বাচন করুন";
+"alert.quit.title" = "%@ প্রস্থান";
+"alert.quit.message" = "আপনি কি নিশ্চিতরূপে প্রস্থান করতে চান? সব খোলা ট্যাব বন্ধ হয়ে যাবে।";
+"menu.select_tab" = "ট্যাব %d নির্বাচন করুন";
+"settings.max_rows_value" = "লোড করার সর্বোচ্চ সারি: %d";
+"settings.max_rows_note" = "এই পরিবর্তনের পরে খোলা ফাইলের ক্ষেত্রে প্রযোজ্য; বেশি মান কর্মক্ষমতা প্রভাবিত করতে পারে";
+"settings.app" = "অ্যাপ";
+"batch.partial.title" = "কিছু ফাইল খোলা হয়নি";
+"batch.partial.detail" = "সফলভাবে খোলা হয়েছে: %1$d
+খোলা যায়নি: %2$d
+
+কারণ: ট্যাব সীমা (%3$d) পূর্ণ হয়েছে।
+
+যে ফাইলগুলো খোলা যায়নি:
+%4$@
+
+টিপ: সেটিংসে ট্যাব সীমা বাড়ান বা কিছু ট্যাব বন্ধ করুন।";
+"batch.success.title" = "ফাইল সফলভাবে খোলা হয়েছে";
+"batch.success.detail" = "%d টি ফাইল আলাদা ট্যাবে খোলা হয়েছে।";
+"tabs.limit.title" = "ট্যাব সীমা পূর্ণ";
+"tabs.limit.detail" = "সর্বোচ্চ %d টি ট্যাব অনুমোদিত। কিছু ট্যাব বন্ধ করুন বা সেটিংসে সীমা বাড়ান।";
+"error.repair_write_failed" = "মেরামত করা ফাইল লেখা ব্যর্থ হয়েছে: %@";

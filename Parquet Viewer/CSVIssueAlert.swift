@@ -17,7 +17,7 @@ struct CSVIssueAlert: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.title2)
                     .foregroundColor(.orange)
-                Text("CSV 檔案問題")
+                Text("csv.issue.title".localized)
                     .font(.headline)
                 Spacer()
                 Button(action: onDismiss) {
@@ -38,7 +38,7 @@ struct CSVIssueAlert: View {
                         Image(systemName: "info.circle.fill")
                             .foregroundColor(.blue)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("檢測到問題")
+                            Text("csv.issue.detected".localized)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                             Text(description)
@@ -90,7 +90,7 @@ struct CSVIssueAlert: View {
 
                 // Cancel button
                 Button(action: onDismiss) {
-                    Text("取消")
+                    Text("alert.cancel".localized)
                         .font(.body)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)

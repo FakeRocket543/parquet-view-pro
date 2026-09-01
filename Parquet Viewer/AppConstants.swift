@@ -84,9 +84,12 @@ enum FileType: String, CaseIterable {
         case .parquet:
             return "read_parquet('\(path)')"
         case .csv:
-            return "read_csv('\(path)', delim=',', quote='\"', escape='\"', header=true, ignore_errors=true, auto_detect=true)"
+            // No forced delim/header: the sniffer must decide, otherwise
+            // headerless files lose their first row and semicolon-delimited
+            // files collapse into a single column
+            return "read_csv('\(path)', ignore_errors=true, auto_detect=true)"
         case .tsv:
-            return "read_csv('\(path)', delim='\t', header=true, ignore_errors=true, auto_detect=true)"
+            return "read_csv('\(path)', delim='\t', ignore_errors=true, auto_detect=true)"
         case .json:
             return "read_json_auto('\(path)')"
         case .jsonl:
@@ -118,21 +121,16 @@ enum SecurityHelper {
         // Validate path format
         guard !path.isEmpty else { return nil }
 
-        // Prevent path traversal attacks
-        guard !path.contains("..") else {
+        // Prevent path traversal attacks (only a real ".." path component,
+        // not a substring of a legitimate filename like "data..final.csv")
+        guard !path.split(separator: "/").contains("..") else {
             return nil
         }
 
-        // Escape special characters for SQL
-        var sanitized = path
-
-        // Escape single quotes (SQL)
-        sanitized = sanitized.replacingOccurrences(of: "'", with: "''")
-
-        // Escape backslashes (path separator on Windows, escape char in SQL)
-        sanitized = sanitized.replacingOccurrences(of: "\\", with: "\\\\")
-
-        return sanitized
+        // Escape single quotes for SQL string literals. Backslashes are
+        // literal characters in DuckDB standard strings — doubling them
+        // would corrupt paths that contain them.
+        return path.replacingOccurrences(of: "'", with: "''")
     }
 
     /// Validate file path and check if it's safe to access
@@ -154,7 +152,7 @@ enum SecurityHelper {
 
         // Validate path doesn't contain dangerous patterns
         let path = url.path
-        guard !path.contains("..") else {
+        guard !path.split(separator: "/").contains("..") else {
             return .failure(.pathTraversal)
         }
 
@@ -234,7 +232,6 @@ extension Notification.Name {
     static let increaseFontSize = Notification.Name("increaseFontSize")
     static let decreaseFontSize = Notification.Name("decreaseFontSize")
     static let resetFontSize = Notification.Name("resetFontSize")
-    static let toggleSidebar = Notification.Name("toggleSidebar")
     static let openFileFromTab = Notification.Name("openFileFromTab")
     static let createEmptyTab = Notification.Name("createEmptyTab")
     static let closeCurrentTab = Notification.Name("closeCurrentTab")

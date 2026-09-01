@@ -25,7 +25,7 @@
 "error.title" = "Erreur";
 "error.no_file" = "Aucun fichier chargé";
 "error.no_connection" = "Pas de connexion à la base de données";
-"error.failed_to_load" = "Échec du chargement du fichier";
+"error.failed_to_load" = "Échec du chargement du fichier : %@";
 "settings.title" = "Réglages";
 "settings.appearance" = "Apparence";
 "settings.theme" = "Thème";
@@ -49,3 +49,96 @@
 "export.failed.title" = "Échec de l'exportation";
 "alert.ok" = "OK";
 "alert.cancel" = "Annuler";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "Ouvrir un fichier...";
+"menu.close_tab" = "Fermer l'onglet";
+"menu.find" = "Rechercher...";
+"menu.tab" = "Onglet";
+"menu.new_tab" = "Nouvel onglet";
+"menu.close_other_tabs" = "Fermer les autres onglets";
+"menu.close_all_tabs" = "Fermer tous les onglets";
+"menu.next_tab" = "Onglet suivant";
+"menu.previous_tab" = "Onglet précédent";
+"menu.increase_font" = "Agrandir la police";
+"menu.decrease_font" = "Réduire la police";
+"menu.reset_font" = "Réinitialiser la taille de police";
+"menu.about" = "À propos de %@";
+"export.as_csv" = "Exporter en CSV";
+"export.as_parquet" = "Exporter en Parquet";
+"export.menu" = "Exporter";
+"button.open" = "Ouvrir";
+"button.clear_search" = "Effacer la recherche";
+"button.quit" = "Quitter";
+"button.reset" = "Réinitialiser";
+"tooltip.jump_to_row" = "Aller à la ligne...";
+"tooltip.new_tab" = "Nouvel onglet (⌘T)";
+"search.no_results" = "Aucun résultat";
+"search.no_match" = "Aucune donnée ne correspond à « %@ »";
+"file.no_data" = "Ce fichier ne contient aucune donnée";
+"search.rows_range" = "Lignes %1$d-%2$d sur %3$d";
+"search.action" = "Rechercher";
+"loading.generic" = "Chargement...";
+"jump.title" = "Aller à la ligne";
+"jump.row_number" = "Numéro de ligne (de 1 à %d) :";
+"jump.row_placeholder" = "Saisir le numéro de ligne";
+"jump.rows_to_load" = "Nombre de lignes à charger :";
+"jump.rows_placeholder" = "Par défaut : 1000";
+"jump.recommended" = "(Recommandé : 1000-%d)";
+"jump.info" = "Les données seront chargées à partir de la ligne indiquée";
+"jump.action" = "Aller";
+"csv.issue.title" = "Problème de fichier CSV";
+"csv.issue.detected" = "Problème détecté";
+"csv.action.ignore_and_load" = "Charger le fichier (ignorer les erreurs)";
+"csv.action.skip_last_row" = "Ignorer la dernière ligne et charger";
+"csv.action.open_external" = "Corriger dans un éditeur externe";
+"csv.action.retry_settings" = "Essayer d'autres réglages d'analyse";
+"csv.issue.not_found" = "Fichier introuvable";
+"csv.issue.empty" = "Le fichier est vide";
+"csv.issue.encoding" = "Impossible de lire l'encodage du fichier";
+"csv.issue.no_content" = "Le fichier n'a aucun contenu";
+"csv.issue.header" = "Impossible d'analyser la ligne d'en-tête";
+"csv.issue.unmatched_quotes" = "Guillemets non appariés à la ligne %d";
+"csv.issue.truncated" = "La dernière ligne est tronquée (%1$d colonnes attendues, %2$d trouvées)";
+"csv.issue.mismatch" = "La ligne %1$d a un nombre de colonnes incorrect (%2$d attendues, %3$d trouvées)";
+"settings.features" = "Fonctionnalités";
+"settings.multiple_tabs" = "Activer les onglets multiples";
+"settings.max_tabs_value" = "Nombre max d'onglets : %d";
+"settings.max_tabs_description" = "Nombre maximal d'onglets pouvant être ouverts simultanément";
+"settings.relaunch_note" = "Prend effet après le relancement";
+"settings.shortcuts" = "Raccourcis clavier";
+"settings.theme.system" = "Système";
+"settings.font_size" = "Taille de police du tableau : %d pt";
+"settings.font_default" = "%d (par défaut)";
+"settings.font_hint" = "Utilisez Cmd +/- ou Cmd 0 pour ajuster la taille de police dans le tableau";
+"settings.language.restart" = "Relancez l'app pour que le changement de langue prenne effet.";
+"shortcuts.select_tab" = "Sélectionner un onglet";
+"tab.untitled" = "Sans titre";
+"tab.close_others" = "Fermer les autres";
+"tab.close_all" = "Tout fermer";
+"table.copy" = "Copier";
+"table.copy_column" = "Copier la colonne « %@ »";
+"fileinfo.sorted_by" = "Trié par : %@";
+"dialog.select_multiple" = "Sélectionnez un ou plusieurs fichiers de données à consulter";
+"dialog.select_single" = "Sélectionnez un fichier de données à consulter";
+"alert.quit.title" = "Quitter %@";
+"alert.quit.message" = "Voulez-vous vraiment quitter ? Tous les onglets ouverts seront fermés.";
+"menu.select_tab" = "Sélectionner l'onglet %d";
+"settings.max_rows_value" = "Nombre max de lignes à charger : %d";
+"settings.max_rows_note" = "S'applique aux fichiers ouverts après cette modification ; des valeurs élevées peuvent affecter les performances";
+"settings.app" = "App";
+"batch.partial.title" = "Certains fichiers n'ont pas été ouverts";
+"batch.partial.detail" = "Ouverts avec succès : %1$d
+Échec d'ouverture : %2$d
+
+Motif : limite d'onglets (%3$d) atteinte.
+
+Fichiers en échec :
+%4$@
+
+Astuce : augmentez la limite d'onglets dans les Réglages ou fermez des onglets.";
+"batch.success.title" = "Fichiers ouverts avec succès";
+"batch.success.detail" = "%d fichiers ont été ouverts dans des onglets distincts.";
+"tabs.limit.title" = "Limite d'onglets atteinte";
+"tabs.limit.detail" = "%d onglets maximum. Fermez des onglets ou augmentez la limite dans les Réglages.";
+"error.repair_write_failed" = "Échec d'écriture du fichier réparé : %@";

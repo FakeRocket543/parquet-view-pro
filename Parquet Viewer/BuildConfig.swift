@@ -8,20 +8,17 @@ import SwiftUI
 // MARK: - Feature Flags
 
 struct FeatureFlags {
-    /// Tab support (can be toggled in settings)
+    /// Tab support (can be toggled in settings; takes effect after relaunch)
     @AppStorage("tabsEnabled") static var tabsEnabled: Bool = true
-    
-    /// Zoom support (can be toggled in settings)
-    @AppStorage("zoomEnabled") static var zoomEnabled: Bool = true
-    
+
     /// App display name
     static let appName = "Parquet View Pro"
     
     /// Bundle identifier
     static let bundleIdentifier = "com.parquetview.pro"
     
-    /// Version string
-    static let versionString = "1.0.0 Pro"
+    /// Version string (keep in sync with release notes and Info.plist)
+    static let versionString = "1.3.0 Pro"
 }
 
 // MARK: - Settings Defaults

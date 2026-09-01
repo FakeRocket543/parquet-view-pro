@@ -19,7 +19,7 @@ echo -e "${BLUE}????????????????????????????????????????????????????????????${NC
 # Variables
 APP_NAME="Parquet View Pro"
 BUNDLE_ID="com.parquetview.pro"
-VERSION="1.0.0"
+VERSION="1.3.0"
 DMG_NAME="ParquetViewPro.dmg"
 BUILD_DIR=".build/release"
 
@@ -117,6 +117,16 @@ EOF
 if [ -f "assets/AppIcon.icns" ]; then
     cp "assets/AppIcon.icns" "$APP_DIR/Contents/Resources/"
 fi
+
+# Copy the SPM resource bundle (localized strings) — without it the UI
+# shows raw keys
+if [ -d "$BUILD_DIR/ParquetViewerSwift_ParquetViewLib.bundle" ]; then
+    cp -R "$BUILD_DIR/ParquetViewerSwift_ParquetViewLib.bundle" "$APP_DIR/Contents/Resources/"
+else
+    echo -e "${RED}WARNING: SPM resource bundle missing — localization will fall back to raw keys${NC}" >&2
+fi
+
+printf 'APPL????' > "$APP_DIR/Contents/PkgInfo"
 
 echo -e "${GREEN}? App bundle created${NC}"
 

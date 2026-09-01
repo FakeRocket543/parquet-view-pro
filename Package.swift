@@ -22,8 +22,6 @@ let package = Package(
             ],
             path: "Parquet Viewer",
             exclude: [
-                "Assets.xcassets",
-                "Preview Content",
                 "Info.plist"
             ]
         ),

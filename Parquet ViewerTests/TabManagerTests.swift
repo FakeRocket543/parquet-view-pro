@@ -40,7 +40,7 @@ final class TabManagerTests: XCTestCase {
         XCTAssertTrue(result)
         XCTAssertEqual(sut.tabs.count, 1)
         XCTAssertNil(sut.tabs.first?.fileURL)
-        XCTAssertEqual(sut.tabs.first?.displayName, "Untitled")
+        XCTAssertEqual(sut.tabs.first?.displayName, "tab.untitled".localized)
     }
     
     func testAddTab_withFileURL() async throws {

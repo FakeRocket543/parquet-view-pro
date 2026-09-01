@@ -6,7 +6,10 @@ DerivedData/
 # DMG & app bundles
 *.dmg
 *.dmg.sha256
-.dmg_temp_*/
+.dmg_temp*/
+*.app/
+test_duckdb
+test_sm2
 
 # Xcode user data
 *.xcuserstate
@@ -42,9 +45,6 @@ Parquet View Pro.app/
 .vscode/
 
 # Temp reports & logs
-BUILD_AND_TEST_REPORT.md
-CSV_FIX_SUMMARY.md
-FINAL_BUILD_SUMMARY.txt
 build.log
 logs/
 
@@ -52,7 +52,6 @@ logs/
 0106/
 bug_1/
 demo/
-docs/
 
 # Python
 __pycache__/

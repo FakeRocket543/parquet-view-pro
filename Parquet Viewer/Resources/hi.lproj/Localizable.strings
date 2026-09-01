@@ -25,7 +25,7 @@
 "error.title" = "त्रुटि";
 "error.no_file" = "कोई फ़ाइल लोड नहीं है";
 "error.no_connection" = "डेटाबेस कनेक्शन नहीं है";
-"error.failed_to_load" = "फ़ाइल लोड करने में विफल";
+"error.failed_to_load" = "फ़ाइल लोड करने में विफल: %@";
 "settings.title" = "सेटिंग्स";
 "settings.appearance" = "दिखावट";
 "settings.theme" = "थीम";
@@ -49,3 +49,96 @@
 "export.failed.title" = "निर्यात विफल";
 "alert.ok" = "ठीक है";
 "alert.cancel" = "रद्द करें";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "फ़ाइल खोलें...";
+"menu.close_tab" = "टैब बंद करें";
+"menu.find" = "खोजें...";
+"menu.tab" = "टैब";
+"menu.new_tab" = "नया टैब";
+"menu.close_other_tabs" = "अन्य टैब बंद करें";
+"menu.close_all_tabs" = "सभी टैब बंद करें";
+"menu.next_tab" = "अगला टैब";
+"menu.previous_tab" = "पिछला टैब";
+"menu.increase_font" = "फ़ॉन्ट आकार बढ़ाएँ";
+"menu.decrease_font" = "फ़ॉन्ट आकार घटाएँ";
+"menu.reset_font" = "फ़ॉन्ट आकार रीसेट करें";
+"menu.about" = "%@ के बारे में";
+"export.as_csv" = "CSV के रूप में निर्यात करें";
+"export.as_parquet" = "Parquet के रूप में निर्यात करें";
+"export.menu" = "निर्यात";
+"button.open" = "खोलें";
+"button.clear_search" = "खोज साफ़ करें";
+"button.quit" = "छोड़ें";
+"button.reset" = "रीसेट";
+"tooltip.jump_to_row" = "पंक्ति पर जाएँ...";
+"tooltip.new_tab" = "नया टैब (⌘T)";
+"search.no_results" = "कोई परिणाम नहीं मिला";
+"search.no_match" = "'%@' से मेल खाता कोई डेटा नहीं";
+"file.no_data" = "इस फ़ाइल में कोई डेटा नहीं है";
+"search.rows_range" = "कुल %3$d में से पंक्तियाँ %1$d-%2$d";
+"search.action" = "खोजें";
+"loading.generic" = "लोड हो रहा है...";
+"jump.title" = "पंक्ति पर जाएँ";
+"jump.row_number" = "पंक्ति संख्या (1 से %d तक):";
+"jump.row_placeholder" = "पंक्ति संख्या दर्ज करें";
+"jump.rows_to_load" = "लोड करने के लिए पंक्तियों की संख्या:";
+"jump.rows_placeholder" = "डिफ़ॉल्ट: 1000";
+"jump.recommended" = "(अनुशंसित: 1000-%d)";
+"jump.info" = "डेटा निर्दिष्ट पंक्ति से आगे लोड होगा";
+"jump.action" = "जाएँ";
+"csv.issue.title" = "CSV फ़ाइल समस्या";
+"csv.issue.detected" = "समस्या पाई गई";
+"csv.action.ignore_and_load" = "फ़ाइल लोड करें (त्रुटियाँ अनदेखा करें)";
+"csv.action.skip_last_row" = "अंतिम पंक्ति छोड़कर लोड करें";
+"csv.action.open_external" = "बाहरी एडिटर में ठीक करें";
+"csv.action.retry_settings" = "अलग पार्सिंग सेटिंग्स आज़माएँ";
+"csv.issue.not_found" = "फ़ाइल नहीं मिली";
+"csv.issue.empty" = "फ़ाइल खाली है";
+"csv.issue.encoding" = "फ़ाइल एनकोडिंग पढ़ने में असमर्थ";
+"csv.issue.no_content" = "फ़ाइल में कोई सामग्री नहीं है";
+"csv.issue.header" = "हेडर पंक्ति पार्स करने में असमर्थ";
+"csv.issue.unmatched_quotes" = "लाइन %d पर बेजोड़ उद्धरण चिह्न";
+"csv.issue.truncated" = "अंतिम पंक्ति अपूर्ण है (%1$d कॉलम अपेक्षित, %2$d मिले)";
+"csv.issue.mismatch" = "लाइन %1$d में कॉलम संख्या गलत है (%2$d अपेक्षित, %3$d मिले)";
+"settings.features" = "सुविधाएँ";
+"settings.multiple_tabs" = "एकाधिक टैब सक्षम करें";
+"settings.max_tabs_value" = "अधिकतम टैब: %d";
+"settings.max_tabs_description" = "एक साथ खोले जा सकने वाले टैब की अधिकतम संख्या";
+"settings.relaunch_note" = "फिर से लॉन्च करने के बाद लागू होता है";
+"settings.shortcuts" = "कीबोर्ड शॉर्टकट";
+"settings.theme.system" = "सिस्टम";
+"settings.font_size" = "टेबल फ़ॉन्ट आकार: %d pt";
+"settings.font_default" = "%d (डिफ़ॉल्ट)";
+"settings.font_hint" = "टेबल में फ़ॉन्ट आकार समायोजित करने के लिए Cmd +/- या Cmd 0 का उपयोग करें";
+"settings.language.restart" = "भाषा परिवर्तन लागू करने के लिए ऐप पुनः प्रारंभ करें।";
+"shortcuts.select_tab" = "टैब चुनें";
+"tab.untitled" = "शीर्षकहीन";
+"tab.close_others" = "अन्य बंद करें";
+"tab.close_all" = "सभी बंद करें";
+"table.copy" = "कॉपी";
+"table.copy_column" = "कॉलम “%@” कॉपी करें";
+"fileinfo.sorted_by" = "इसके अनुसार क्रमित: %@";
+"dialog.select_multiple" = "देखने के लिए एक या अधिक डेटा फ़ाइलें चुनें";
+"dialog.select_single" = "देखने के लिए एक डेटा फ़ाइल चुनें";
+"alert.quit.title" = "%@ छोड़ें";
+"alert.quit.message" = "क्या आप वाकई छोड़ना चाहते हैं? सभी खुले टैब बंद हो जाएँगे।";
+"menu.select_tab" = "टैब %d चुनें";
+"settings.max_rows_value" = "लोड करने की अधिकतम पंक्तियाँ: %d";
+"settings.max_rows_note" = "इस बदलाव के बाद खोली गई फ़ाइलों पर लागू; अधिक मान प्रदर्शन को प्रभावित कर सकते हैं";
+"settings.app" = "ऐप";
+"batch.partial.title" = "कुछ फ़ाइलें नहीं खोली गईं";
+"batch.partial.detail" = "सफलतापूर्वक खोली गईं: %1$d
+खोलने में विफल: %2$d
+
+कारण: टैब सीमा (%3$d) पूरी हो गई।
+
+विफल फ़ाइलें:
+%4$@
+
+सुझाव: सेटिंग्स में टैब सीमा बढ़ाएँ या कुछ टैब बंद करें।";
+"batch.success.title" = "फ़ाइलें सफलतापूर्वक खोली गईं";
+"batch.success.detail" = "%d फ़ाइलें अलग-अलग टैब में खोली गईं।";
+"tabs.limit.title" = "टैब सीमा पूरी हो गई";
+"tabs.limit.detail" = "अधिकतम %d टैब अनुमत हैं। कुछ टैब बंद करें या सेटिंग्स में सीमा बढ़ाएँ।";
+"error.repair_write_failed" = "मरम्मत की गई फ़ाइल लिखने में विफल: %@";

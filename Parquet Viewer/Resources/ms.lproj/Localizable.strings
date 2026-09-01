@@ -25,7 +25,7 @@
 "error.title" = "Ralat";
 "error.no_file" = "Tiada fail dimuatkan";
 "error.no_connection" = "Tiada sambungan pangkalan data";
-"error.failed_to_load" = "Gagal memuatkan fail";
+"error.failed_to_load" = "Gagal memuatkan fail: %@";
 "settings.title" = "Tetapan";
 "settings.appearance" = "Penampilan";
 "settings.theme" = "Tema";
@@ -49,3 +49,96 @@
 "export.failed.title" = "Eksport Gagal";
 "alert.ok" = "OK";
 "alert.cancel" = "Batal";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "Buka Fail...";
+"menu.close_tab" = "Tutup Tab";
+"menu.find" = "Cari...";
+"menu.tab" = "Tab";
+"menu.new_tab" = "Tab Baharu";
+"menu.close_other_tabs" = "Tutup Tab Lain";
+"menu.close_all_tabs" = "Tutup Semua Tab";
+"menu.next_tab" = "Tab Seterusnya";
+"menu.previous_tab" = "Tab Sebelumnya";
+"menu.increase_font" = "Besarkan Saiz Fon";
+"menu.decrease_font" = "Kecilkan Saiz Fon";
+"menu.reset_font" = "Set Semula Saiz Fon";
+"menu.about" = "Perihal %@";
+"export.as_csv" = "Eksport sebagai CSV";
+"export.as_parquet" = "Eksport sebagai Parquet";
+"export.menu" = "Eksport";
+"button.open" = "Buka";
+"button.clear_search" = "Kosongkan Carian";
+"button.quit" = "Keluar";
+"button.reset" = "Set Semula";
+"tooltip.jump_to_row" = "Lompat ke baris...";
+"tooltip.new_tab" = "Tab Baharu (⌘T)";
+"search.no_results" = "Tiada Hasil Ditemui";
+"search.no_match" = "Tiada data sepadan dengan '%@'";
+"file.no_data" = "Fail ini tidak mengandungi data";
+"search.rows_range" = "Baris %1$d-%2$d daripada %3$d";
+"search.action" = "Cari";
+"loading.generic" = "Memuatkan...";
+"jump.title" = "Lompat ke Baris";
+"jump.row_number" = "Nombor Baris (1 hingga %d):";
+"jump.row_placeholder" = "Masukkan nombor baris";
+"jump.rows_to_load" = "Bilangan Baris untuk Dimuatkan:";
+"jump.rows_placeholder" = "Lalai: 1000";
+"jump.recommended" = "(Disyorkan: 1000-%d)";
+"jump.info" = "Data akan dimuatkan bermula dari baris yang dinyatakan";
+"jump.action" = "Lompat";
+"csv.issue.title" = "Isu Fail CSV";
+"csv.issue.detected" = "Isu Dikesan";
+"csv.action.ignore_and_load" = "Muatkan fail (abaikan ralat)";
+"csv.action.skip_last_row" = "Langkau baris terakhir dan muatkan";
+"csv.action.open_external" = "Betulkan dalam penyunting luaran";
+"csv.action.retry_settings" = "Cuba tetapan penghuraian lain";
+"csv.issue.not_found" = "Fail tidak ditemui";
+"csv.issue.empty" = "Fail kosong";
+"csv.issue.encoding" = "Tidak dapat membaca pengekodan fail";
+"csv.issue.no_content" = "Fail tiada kandungan";
+"csv.issue.header" = "Tidak dapat menghuraikan baris pengepala";
+"csv.issue.unmatched_quotes" = "Petikan tidak berpadanan pada baris %d";
+"csv.issue.truncated" = "Baris terakhir terpotong (dijangka %1$d lajur, ditemui %2$d)";
+"csv.issue.mismatch" = "Baris %1$d mempunyai bilangan lajur yang salah (dijangka %2$d, ditemui %3$d)";
+"settings.features" = "Ciri";
+"settings.multiple_tabs" = "Dayakan Berbilang Tab";
+"settings.max_tabs_value" = "Tab Maksimum: %d";
+"settings.max_tabs_description" = "Bilangan maksimum tab yang boleh dibuka serentak";
+"settings.relaunch_note" = "Berkuat kuasa selepas dilancarkan semula";
+"settings.shortcuts" = "Pintasan Papan Kekunci";
+"settings.theme.system" = "Sistem";
+"settings.font_size" = "Saiz Fon Jadual: %d pt";
+"settings.font_default" = "%d (Lalai)";
+"settings.font_hint" = "Gunakan Cmd +/- atau Cmd 0 untuk laraskan saiz fon dalam jadual";
+"settings.language.restart" = "Mulakan semula apl untuk perubahan bahasa berkuat kuasa.";
+"shortcuts.select_tab" = "Pilih Tab";
+"tab.untitled" = "Tanpa Tajuk";
+"tab.close_others" = "Tutup Yang Lain";
+"tab.close_all" = "Tutup Semua";
+"table.copy" = "Salin";
+"table.copy_column" = "Salin Lajur “%@”";
+"fileinfo.sorted_by" = "Diisih mengikut: %@";
+"dialog.select_multiple" = "Pilih satu atau lebih fail data untuk dilihat";
+"dialog.select_single" = "Pilih fail data untuk dilihat";
+"alert.quit.title" = "Keluar %@";
+"alert.quit.message" = "Adakah anda pasti ingin keluar? Semua tab yang dibuka akan ditutup.";
+"menu.select_tab" = "Pilih Tab %d";
+"settings.max_rows_value" = "Baris Maksimum Dimuatkan: %d";
+"settings.max_rows_note" = "Terpakai untuk fail yang dibuka selepas perubahan ini; nilai tinggi boleh menjejaskan prestasi";
+"settings.app" = "Apl";
+"batch.partial.title" = "Sesetengah Fail Tidak Dibuka";
+"batch.partial.detail" = "Berjaya dibuka: %1$d
+Gagal dibuka: %2$d
+
+Sebab: had tab (%3$d) dicapai.
+
+Fail yang gagal:
+%4$@
+
+Tip: Tingkatkan had tab dalam Tetapan atau tutup beberapa tab.";
+"batch.success.title" = "Fail Berjaya Dibuka";
+"batch.success.detail" = "%d fail berjaya dibuka dalam tab berasingan.";
+"tabs.limit.title" = "Had Tab Dicapai";
+"tabs.limit.detail" = "Maksimum %d tab dibenarkan. Tutup beberapa tab atau tingkatkan had dalam Tetapan.";
+"error.repair_write_failed" = "Gagal menulis fail yang dibaiki: %@";

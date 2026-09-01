@@ -76,12 +76,20 @@ final class CSVIntegrityCheckerTests: XCTestCase {
     // MARK: - createTruncatedContent
 
     func testCreateTruncatedContent() throws {
+        // check() reports the number of valid physical records (header
+        // included); createTruncatedContent must keep exactly that many
+        // records and drop the truncated tail.
         let url = try writeTempCSV("trunc.csv",
-            "a,b\n1,2\n3,4\n5,6")
-        let content = CSVIntegrityChecker.createTruncatedContent(from: url, upToRow: 2)
+            "a,b\n1,2\n3,4\n5")
+        let result = CSVIntegrityChecker.check(url: url)
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.issueType, .truncatedLastRow)
+
+        let content = CSVIntegrityChecker.createTruncatedContent(from: url, upToRow: result.lastValidRowIndex)
         XCTAssertNotNil(content)
-        let lines = content!.components(separatedBy: "\n")
-        XCTAssertEqual(lines.count, 3) // header + 2 data rows
+        let records = CSVIntegrityChecker.parseRecords(in: content!)
+        XCTAssertEqual(records.count, 3) // header + 2 intact data rows
+        XCTAssertEqual(records.last, "3,4")
     }
 
     // MARK: - Helper

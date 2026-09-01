@@ -25,7 +25,7 @@
 "error.title" = "Error";
 "error.no_file" = "No hay archivo cargado";
 "error.no_connection" = "Sin conexión a la base de datos";
-"error.failed_to_load" = "Error al cargar el archivo";
+"error.failed_to_load" = "Error al cargar el archivo: %@";
 "settings.title" = "Ajustes";
 "settings.appearance" = "Apariencia";
 "settings.theme" = "Tema";
@@ -49,3 +49,96 @@
 "export.failed.title" = "Error de exportación";
 "alert.ok" = "Aceptar";
 "alert.cancel" = "Cancelar";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "Abrir archivo...";
+"menu.close_tab" = "Cerrar pestaña";
+"menu.find" = "Buscar...";
+"menu.tab" = "Pestaña";
+"menu.new_tab" = "Nueva pestaña";
+"menu.close_other_tabs" = "Cerrar otras pestañas";
+"menu.close_all_tabs" = "Cerrar todas las pestañas";
+"menu.next_tab" = "Pestaña siguiente";
+"menu.previous_tab" = "Pestaña anterior";
+"menu.increase_font" = "Aumentar tamaño de fuente";
+"menu.decrease_font" = "Reducir tamaño de fuente";
+"menu.reset_font" = "Restablecer tamaño de fuente";
+"menu.about" = "Acerca de %@";
+"export.as_csv" = "Exportar como CSV";
+"export.as_parquet" = "Exportar como Parquet";
+"export.menu" = "Exportar";
+"button.open" = "Abrir";
+"button.clear_search" = "Borrar búsqueda";
+"button.quit" = "Salir";
+"button.reset" = "Restablecer";
+"tooltip.jump_to_row" = "Ir a la fila...";
+"tooltip.new_tab" = "Nueva pestaña (⌘T)";
+"search.no_results" = "No se encontraron resultados";
+"search.no_match" = "Ningún dato coincide con “%@”";
+"file.no_data" = "Este archivo no contiene datos";
+"search.rows_range" = "Filas %1$d-%2$d de %3$d";
+"search.action" = "Buscar";
+"loading.generic" = "Cargando...";
+"jump.title" = "Ir a la fila";
+"jump.row_number" = "Número de fila (1 a %d):";
+"jump.row_placeholder" = "Introduzca el número de fila";
+"jump.rows_to_load" = "Número de filas a cargar:";
+"jump.rows_placeholder" = "Predeterminado: 1000";
+"jump.recommended" = "(Recomendado: 1000-%d)";
+"jump.info" = "Los datos se cargarán a partir de la fila indicada";
+"jump.action" = "Ir";
+"csv.issue.title" = "Problema con el archivo CSV";
+"csv.issue.detected" = "Problema detectado";
+"csv.action.ignore_and_load" = "Cargar archivo (ignorar errores)";
+"csv.action.skip_last_row" = "Omitir la última fila y cargar";
+"csv.action.open_external" = "Corregir en un editor externo";
+"csv.action.retry_settings" = "Probar otras opciones de análisis";
+"csv.issue.not_found" = "Archivo no encontrado";
+"csv.issue.empty" = "El archivo está vacío";
+"csv.issue.encoding" = "No se pudo leer la codificación del archivo";
+"csv.issue.no_content" = "El archivo no tiene contenido";
+"csv.issue.header" = "No se pudo analizar la fila de encabezado";
+"csv.issue.unmatched_quotes" = "Comillas sin cerrar en la línea %d";
+"csv.issue.truncated" = "La última fila está truncada (se esperaban %1$d columnas, se encontraron %2$d)";
+"csv.issue.mismatch" = "La línea %1$d tiene un número incorrecto de columnas (se esperaban %2$d, se encontraron %3$d)";
+"settings.features" = "Funciones";
+"settings.multiple_tabs" = "Activar múltiples pestañas";
+"settings.max_tabs_value" = "Máximo de pestañas: %d";
+"settings.max_tabs_description" = "Número máximo de pestañas que se pueden abrir simultáneamente";
+"settings.relaunch_note" = "Surte efecto tras reiniciar la app";
+"settings.shortcuts" = "Atajos de teclado";
+"settings.theme.system" = "Sistema";
+"settings.font_size" = "Tamaño de fuente de la tabla: %d pt";
+"settings.font_default" = "%d (predeterminado)";
+"settings.font_hint" = "Use Cmd +/- o Cmd 0 para ajustar el tamaño de fuente en la tabla";
+"settings.language.restart" = "Reinicie la app para que el cambio de idioma surta efecto.";
+"shortcuts.select_tab" = "Seleccionar pestaña";
+"tab.untitled" = "Sin título";
+"tab.close_others" = "Cerrar las demás";
+"tab.close_all" = "Cerrar todas";
+"table.copy" = "Copiar";
+"table.copy_column" = "Copiar columna “%@”";
+"fileinfo.sorted_by" = "Ordenado por: %@";
+"dialog.select_multiple" = "Seleccione uno o más archivos de datos para ver";
+"dialog.select_single" = "Seleccione un archivo de datos para ver";
+"alert.quit.title" = "Salir de %@";
+"alert.quit.message" = "¿Seguro que desea salir? Se cerrarán todas las pestañas abiertas.";
+"menu.select_tab" = "Seleccionar pestaña %d";
+"settings.max_rows_value" = "Máximo de filas a cargar: %d";
+"settings.max_rows_note" = "Se aplica a los archivos abiertos después de este cambio; valores altos pueden afectar el rendimiento";
+"settings.app" = "App";
+"batch.partial.title" = "Algunos archivos no se abrieron";
+"batch.partial.detail" = "Abiertos correctamente: %1$d
+No se pudieron abrir: %2$d
+
+Motivo: se alcanzó el límite de pestañas (%3$d).
+
+Archivos no abiertos:
+%4$@
+
+Sugerencia: aumente el límite de pestañas en Ajustes o cierre algunas pestañas.";
+"batch.success.title" = "Archivos abiertos correctamente";
+"batch.success.detail" = "Se abrieron %d archivos en pestañas separadas.";
+"tabs.limit.title" = "Límite de pestañas alcanzado";
+"tabs.limit.detail" = "Se permite un máximo de %d pestañas. Cierre algunas pestañas o aumente el límite en Ajustes.";
+"error.repair_write_failed" = "No se pudo escribir el archivo reparado: %@";

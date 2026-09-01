@@ -30,8 +30,8 @@ struct FileOpenDialog {
         panel.allowsMultipleSelection = FeatureFlags.tabsEnabled
         panel.canChooseDirectories = false
         panel.message = FeatureFlags.tabsEnabled
-            ? "Select one or more data files to view"
-            : "Select a data file to view"
+            ? "dialog.select_multiple".localized
+            : "dialog.select_single".localized
 
         panel.begin { response in
             guard response == .OK else {

@@ -25,7 +25,7 @@
 "error.title" = "エラー";
 "error.no_file" = "ファイルが読み込まれていません";
 "error.no_connection" = "データベース接続なし";
-"error.failed_to_load" = "ファイルの読み込みに失敗しました";
+"error.failed_to_load" = "ファイルの読み込みに失敗しました：%@";
 "settings.title" = "設定";
 "settings.appearance" = "外観";
 "settings.theme" = "テーマ";
@@ -49,3 +49,96 @@
 "export.failed.title" = "エクスポート失敗";
 "alert.ok" = "OK";
 "alert.cancel" = "キャンセル";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "ファイルを開く...";
+"menu.close_tab" = "タブを閉じる";
+"menu.find" = "検索...";
+"menu.tab" = "タブ";
+"menu.new_tab" = "新規タブ";
+"menu.close_other_tabs" = "ほかのタブを閉じる";
+"menu.close_all_tabs" = "すべてのタブを閉じる";
+"menu.next_tab" = "次のタブ";
+"menu.previous_tab" = "前のタブ";
+"menu.increase_font" = "フォントを拡大";
+"menu.decrease_font" = "フォントを縮小";
+"menu.reset_font" = "フォントサイズをリセット";
+"menu.about" = "%@ について";
+"export.as_csv" = "CSV としてエクスポート";
+"export.as_parquet" = "Parquet としてエクスポート";
+"export.menu" = "エクスポート";
+"button.open" = "開く";
+"button.clear_search" = "検索をクリア";
+"button.quit" = "終了";
+"button.reset" = "リセット";
+"tooltip.jump_to_row" = "行にジャンプ...";
+"tooltip.new_tab" = "新規タブ（⌘T）";
+"search.no_results" = "結果が見つかりません";
+"search.no_match" = "「%@」に一致するデータはありません";
+"file.no_data" = "このファイルにはデータが含まれていません";
+"search.rows_range" = "全 %3$d 行中の %1$d-%2$d 行目";
+"search.action" = "検索";
+"loading.generic" = "読み込み中...";
+"jump.title" = "行にジャンプ";
+"jump.row_number" = "行番号（1〜%d）：";
+"jump.row_placeholder" = "行番号を入力";
+"jump.rows_to_load" = "読み込む行数：";
+"jump.rows_placeholder" = "デフォルト：1000";
+"jump.recommended" = "（推奨：1000-%d）";
+"jump.info" = "指定した行以降のデータが読み込まれます";
+"jump.action" = "ジャンプ";
+"csv.issue.title" = "CSV ファイルの問題";
+"csv.issue.detected" = "問題を検出しました";
+"csv.action.ignore_and_load" = "ファイルを読み込む（エラーを無視）";
+"csv.action.skip_last_row" = "最終行をスキップして読み込む";
+"csv.action.open_external" = "外部エディタで修正";
+"csv.action.retry_settings" = "別の解析設定を試す";
+"csv.issue.not_found" = "ファイルが見つかりません";
+"csv.issue.empty" = "ファイルが空です";
+"csv.issue.encoding" = "ファイルのエンコーディングを読み取れません";
+"csv.issue.no_content" = "ファイルに内容がありません";
+"csv.issue.header" = "ヘッダー行を解析できません";
+"csv.issue.unmatched_quotes" = "%d 行目に対応のない引用符があります";
+"csv.issue.truncated" = "最終行が切り詰められています（想定 %1$d 列、検出 %2$d 列）";
+"csv.issue.mismatch" = "%1$d 行目の列数が正しくありません（想定 %2$d、検出 %3$d）";
+"settings.features" = "機能";
+"settings.multiple_tabs" = "複数タブを有効にする";
+"settings.max_tabs_value" = "最大タブ数：%d";
+"settings.max_tabs_description" = "同時に開けるタブの最大数";
+"settings.relaunch_note" = "再起動後に有効になります";
+"settings.shortcuts" = "キーボードショートカット";
+"settings.theme.system" = "システム";
+"settings.font_size" = "表のフォントサイズ：%d pt";
+"settings.font_default" = "%d（デフォルト）";
+"settings.font_hint" = "表内では Cmd +/- または Cmd 0 でフォントサイズを調整できます";
+"settings.language.restart" = "言語の変更を反映するにはアプリを再起動してください。";
+"shortcuts.select_tab" = "タブを選択";
+"tab.untitled" = "無題";
+"tab.close_others" = "ほかを閉じる";
+"tab.close_all" = "すべて閉じる";
+"table.copy" = "コピー";
+"table.copy_column" = "列「%@」をコピー";
+"fileinfo.sorted_by" = "並べ替え：%@";
+"dialog.select_multiple" = "表示するデータファイルを1つ以上選択してください";
+"dialog.select_single" = "表示するデータファイルを1つ選択してください";
+"alert.quit.title" = "%@ を終了";
+"alert.quit.message" = "終了してもよろしいですか？開いているすべてのタブが閉じます。";
+"menu.select_tab" = "タブ %d を選択";
+"settings.max_rows_value" = "最大読み込み行数：%d";
+"settings.max_rows_note" = "この変更後に開いたファイルに適用されます。値が大きいとパフォーマンスに影響する場合があります";
+"settings.app" = "アプリ";
+"batch.partial.title" = "一部のファイルを開けませんでした";
+"batch.partial.detail" = "正常に開けたファイル：%1$d 個
+開けなかったファイル：%2$d 個
+
+理由：タブ数の上限（%3$d）に達しました。
+
+開けなかったファイル：
+%4$@
+
+ヒント：設定でタブ数の上限を上げるか、一部のタブを閉じてください。";
+"batch.success.title" = "ファイルを開きました";
+"batch.success.detail" = "%d 個のファイルを個別のタブで開きました。";
+"tabs.limit.title" = "タブ数の上限に達しました";
+"tabs.limit.detail" = "タブは最大 %d 個までです。一部のタブを閉じるか、設定で上限を上げてください。";
+"error.repair_write_failed" = "修復したファイルの書き込みに失敗しました：%@";

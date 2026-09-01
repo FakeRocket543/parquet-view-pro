@@ -23,8 +23,8 @@ APP_PASSWORD="<app-specific-password>"  # appleid.apple.com → Sign-In and Secu
 # ==========================
 
 APP_NAME="Parquet View Pro"
-BUNDLE_ID="com.parquetviewpro.app"
-VERSION="1.2.0"
+BUNDLE_ID="com.parquetview.pro"
+VERSION="1.3.0"
 BUILD_DIR=".build/arm64-apple-macosx/release"
 BINARY="Parquet-View"
 APP_BUNDLE="${APP_NAME}.app"
@@ -68,6 +68,14 @@ cp "Parquet Viewer/Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string ${APP_NAME}" "${APP_BUNDLE}/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Delete :CFBundleShortVersionString" "${APP_BUNDLE}/Contents/Info.plist" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string ${VERSION}" "${APP_BUNDLE}/Contents/Info.plist"
+
+# SPM resource bundle carries the localized strings
+if [ -d "${BUILD_DIR}/ParquetViewerSwift_ParquetViewLib.bundle" ]; then
+    cp -R "${BUILD_DIR}/ParquetViewerSwift_ParquetViewLib.bundle" "${APP_BUNDLE}/Contents/Resources/"
+else
+    err "SPM resource bundle missing — localization will fall back to raw keys"
+fi
+printf 'APPL????' > "${APP_BUNDLE}/Contents/PkgInfo"
 
 ok ".app bundle 建立完成"
 

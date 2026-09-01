@@ -1,72 +1,10 @@
 // Sidebar View
 // Sidebar components for main interface
 // SM-5: Main SwiftUI Interface
+// (The sidebar itself is composed inline in ContentView; the reusable
+// sections below are the live pieces.)
 
 import SwiftUI
-
-struct SidebarView: View {
-    @ObservedObject var dbManager: DuckDBManager
-    let recentFiles: [URL]
-    let onOpenFile: () -> Void
-    let onSelectRecentFile: (URL) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Title
-            VStack(alignment: .leading, spacing: 4) {
-                Image(systemName: "doc.text.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(.blue)
-                Text("Parquet View")
-                    .font(.title2)
-                    .bold()
-            }
-            .padding(.bottom, 8)
-
-            Divider()
-
-            // File Info
-            if let info = dbManager.fileInfo {
-                FileInfoSection(info: info, totalRows: dbManager.totalRowCount)
-
-                // Sort indicator
-                if let sortCol = dbManager.sortColumn {
-                    HStack {
-                        Image(systemName: dbManager.sortAscending ? "arrow.up" : "arrow.down")
-                            .foregroundColor(.blue)
-                        Text("Sorted by: \(sortCol)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 4)
-                }
-            }
-
-            // Open File Button
-            Button {
-                onOpenFile()
-            } label: {
-                HStack {
-                    Image(systemName: "folder")
-                    Text("Open")
-                    Spacer()
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .frame(maxWidth: .infinity)
-
-            // Recent Files
-            if !recentFiles.isEmpty {
-                Divider()
-                RecentFilesSection(files: recentFiles, onSelect: onSelectRecentFile)
-            }
-
-            Spacer()
-        }
-        .padding()
-    }
-}
 
 // MARK: - Supporting Views
 
@@ -76,14 +14,14 @@ struct FileInfoSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Current File")
+            Text("fileinfo.title".localized)
                 .font(.headline)
                 .foregroundColor(.secondary)
 
-            InfoRow(label: "Name", value: info.name)
-            InfoRow(label: "Size", value: info.size)
-            InfoRow(label: "Columns", value: "\(info.columnCount)")
-            InfoRow(label: "Rows", value: "\(totalRows)")
+            InfoRow(label: "fileinfo.name".localized, value: info.name)
+            InfoRow(label: "fileinfo.size".localized, value: info.size)
+            InfoRow(label: "fileinfo.columns".localized, value: "\(info.columnCount)")
+            InfoRow(label: "fileinfo.rows".localized, value: "\(totalRows)")
         }
     }
 }
@@ -111,7 +49,7 @@ struct RecentFilesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Recent Files")
+            Text("recent.title".localized)
                 .font(.headline)
                 .foregroundColor(.secondary)
 
@@ -145,13 +83,9 @@ struct RecentFilesSection: View {
     }
 }
 
-// MARK: - Preview
-
 #Preview {
-    SidebarView(
-        dbManager: DuckDBManager(),
-        recentFiles: [],
-        onOpenFile: {},
-        onSelectRecentFile: { _ in }
+    FileInfoSection(
+        info: DuckDBManager.FileInfo(name: "data.parquet", path: "/tmp/data.parquet", size: "1.2 MB", columnCount: 5),
+        totalRows: 12345
     )
 }

@@ -25,7 +25,7 @@
 "error.title" = "Kesalahan";
 "error.no_file" = "Tidak ada file dimuat";
 "error.no_connection" = "Tidak ada koneksi database";
-"error.failed_to_load" = "Gagal memuat file";
+"error.failed_to_load" = "Gagal memuat file: %@";
 "settings.title" = "Pengaturan";
 "settings.appearance" = "Tampilan";
 "settings.theme" = "Tema";
@@ -49,3 +49,96 @@
 "export.failed.title" = "Ekspor Gagal";
 "alert.ok" = "OK";
 "alert.cancel" = "Batal";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "Buka Berkas...";
+"menu.close_tab" = "Tutup Tab";
+"menu.find" = "Cari...";
+"menu.tab" = "Tab";
+"menu.new_tab" = "Tab Baru";
+"menu.close_other_tabs" = "Tutup Tab Lain";
+"menu.close_all_tabs" = "Tutup Semua Tab";
+"menu.next_tab" = "Tab Berikutnya";
+"menu.previous_tab" = "Tab Sebelumnya";
+"menu.increase_font" = "Perbesar Ukuran Huruf";
+"menu.decrease_font" = "Perkecil Ukuran Huruf";
+"menu.reset_font" = "Atur Ulang Ukuran Huruf";
+"menu.about" = "Tentang %@";
+"export.as_csv" = "Ekspor sebagai CSV";
+"export.as_parquet" = "Ekspor sebagai Parquet";
+"export.menu" = "Ekspor";
+"button.open" = "Buka";
+"button.clear_search" = "Hapus Pencarian";
+"button.quit" = "Keluar";
+"button.reset" = "Atur Ulang";
+"tooltip.jump_to_row" = "Lompat ke baris...";
+"tooltip.new_tab" = "Tab Baru (⌘T)";
+"search.no_results" = "Tidak Ada Hasil";
+"search.no_match" = "Tidak ada data yang cocok dengan '%@'";
+"file.no_data" = "File ini tidak berisi data";
+"search.rows_range" = "Baris %1$d-%2$d dari %3$d";
+"search.action" = "Cari";
+"loading.generic" = "Memuat...";
+"jump.title" = "Lompat ke Baris";
+"jump.row_number" = "Nomor Baris (1 hingga %d):";
+"jump.row_placeholder" = "Masukkan nomor baris";
+"jump.rows_to_load" = "Jumlah Baris yang Dimuat:";
+"jump.rows_placeholder" = "Bawaan: 1000";
+"jump.recommended" = "(Disarankan: 1000-%d)";
+"jump.info" = "Data akan dimuat mulai dari baris yang ditentukan";
+"jump.action" = "Lompat";
+"csv.issue.title" = "Masalah File CSV";
+"csv.issue.detected" = "Masalah Terdeteksi";
+"csv.action.ignore_and_load" = "Muat file (abaikan kesalahan)";
+"csv.action.skip_last_row" = "Lewati baris terakhir dan muat";
+"csv.action.open_external" = "Perbaiki di editor eksternal";
+"csv.action.retry_settings" = "Coba pengaturan penguraian lain";
+"csv.issue.not_found" = "File tidak ditemukan";
+"csv.issue.empty" = "File kosong";
+"csv.issue.encoding" = "Tidak dapat membaca pengodean file";
+"csv.issue.no_content" = "File tidak memiliki konten";
+"csv.issue.header" = "Tidak dapat mengurai baris header";
+"csv.issue.unmatched_quotes" = "Kutipan tidak berpasangan pada baris %d";
+"csv.issue.truncated" = "Baris terakhir terpotong (diharapkan %1$d kolom, ditemukan %2$d)";
+"csv.issue.mismatch" = "Baris %1$d memiliki jumlah kolom yang salah (diharapkan %2$d, ditemukan %3$d)";
+"settings.features" = "Fitur";
+"settings.multiple_tabs" = "Aktifkan Beberapa Tab";
+"settings.max_tabs_value" = "Maks Tab: %d";
+"settings.max_tabs_description" = "Jumlah maksimum tab yang dapat dibuka secara bersamaan";
+"settings.relaunch_note" = "Berlaku setelah aplikasi dimulai ulang";
+"settings.shortcuts" = "Pintasan Keyboard";
+"settings.theme.system" = "Sistem";
+"settings.font_size" = "Ukuran Huruf Tabel: %d pt";
+"settings.font_default" = "%d (Bawaan)";
+"settings.font_hint" = "Gunakan Cmd +/- atau Cmd 0 untuk menyesuaikan ukuran huruf di tabel";
+"settings.language.restart" = "Mulai ulang aplikasi agar perubahan bahasa diterapkan.";
+"shortcuts.select_tab" = "Pilih Tab";
+"tab.untitled" = "Tanpa Judul";
+"tab.close_others" = "Tutup Lainnya";
+"tab.close_all" = "Tutup Semua";
+"table.copy" = "Salin";
+"table.copy_column" = "Salin Kolom “%@”";
+"fileinfo.sorted_by" = "Diurutkan berdasarkan: %@";
+"dialog.select_multiple" = "Pilih satu atau lebih file data untuk dilihat";
+"dialog.select_single" = "Pilih file data untuk dilihat";
+"alert.quit.title" = "Keluar dari %@";
+"alert.quit.message" = "Yakin ingin keluar? Semua tab yang terbuka akan ditutup.";
+"menu.select_tab" = "Pilih Tab %d";
+"settings.max_rows_value" = "Maks Baris Dimuat: %d";
+"settings.max_rows_note" = "Berlaku untuk file yang dibuka setelah perubahan ini; nilai tinggi dapat memengaruhi kinerja";
+"settings.app" = "Aplikasi";
+"batch.partial.title" = "Sebagian File Tidak Dibuka";
+"batch.partial.detail" = "Berhasil dibuka: %1$d
+Gagal dibuka: %2$d
+
+Penyebab: batas tab (%3$d) tercapai.
+
+File yang gagal:
+%4$@
+
+Tips: Tingkatkan batas tab di Pengaturan atau tutup beberapa tab.";
+"batch.success.title" = "File Berhasil Dibuka";
+"batch.success.detail" = "%d file berhasil dibuka di tab terpisah.";
+"tabs.limit.title" = "Batas Tab Tercapai";
+"tabs.limit.detail" = "Maksimum %d tab diizinkan. Tutup beberapa tab atau tingkatkan batasnya di Pengaturan.";
+"error.repair_write_failed" = "Gagal menulis file yang diperbaiki: %@";

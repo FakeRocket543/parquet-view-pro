@@ -16,6 +16,9 @@ struct SearchBarView: View {
 
     // PERFORMANCE: Search debounce to prevent excessive queries
     @State private var searchCancellable: AnyCancellable?
+    // Set while the clear button is resetting the field so the debounced
+    // onChange path doesn't fire the same empty search a second time
+    @State private var isClearingSearch = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -23,10 +26,14 @@ struct SearchBarView: View {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .foregroundColor(isSearchFocused ? .blue : .secondary)
-                TextField("Search...", text: $searchText)
+                TextField("search.placeholder".localized, text: $searchText)
                     .textFieldStyle(.plain)
                     .focused($isSearchFocused)
                     .onChange(of: searchText) { newValue in
+                        if isClearingSearch && newValue.isEmpty {
+                            isClearingSearch = false
+                            return  // the clear button already fired the search
+                        }
                         // PERFORMANCE: Debounce search to prevent excessive queries
                         searchCancellable?.cancel()
                         searchCancellable = Just(newValue)
@@ -46,6 +53,7 @@ struct SearchBarView: View {
                     }
                 if !searchText.isEmpty {
                     Button {
+                        isClearingSearch = true
                         searchText = ""
                         searchCancellable?.cancel()
                         Task {
@@ -56,6 +64,7 @@ struct SearchBarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(8)
@@ -72,7 +81,7 @@ struct SearchBarView: View {
                 Divider()
                     .frame(height: 20)
 
-                Text("Rows \(currentStartRow + 1)-\(currentStartRow + displayedRowCount) of \(totalRowCount)")
+                Text("search.rows_range".localizedWithFormat(currentStartRow + 1, currentStartRow + displayedRowCount, totalRowCount))
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize()
@@ -82,7 +91,8 @@ struct SearchBarView: View {
                 } label: {
                     Image(systemName: "arrow.up.arrow.down")
                 }
-                .help("Jump to row...")
+                .help("tooltip.jump_to_row".localized)
+                .accessibilityLabel("Jump to row")
                 .buttonStyle(.borderless)
             }
         }

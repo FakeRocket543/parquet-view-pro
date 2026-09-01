@@ -5,9 +5,21 @@
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundleName</key>
-    <string>Parquet View</string>
+    <string>Parquet View Pro</string>
     <key>CFBundleDisplayName</key>
-    <string>Parquet View</string>
+    <string>Parquet View Pro</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.parquetview.pro</string>
+    <key>CFBundleExecutable</key>
+    <string>Parquet-View</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.3.0</string>
+    <key>CFBundleVersion</key>
+    <string>130</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
@@ -32,6 +44,47 @@
             <key>LSItemContentTypes</key>
             <array>
                 <string>public.comma-separated-values-text</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Tab-Separated Values File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.tab-separated-values-text</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>JSON File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.json</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>Newline-Delimited JSON File</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.json</string>
+            </array>
+            <key>CFBundleTypeExtensions</key>
+            <array>
+                <string>jsonl</string>
+                <string>ndjson</string>
             </array>
         </dict>
     </array>
@@ -63,6 +116,6 @@
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>NSHumanReadableCopyright</key>
-    <string>Copyright ? 2025. All rights reserved.</string>
+    <string>Copyright © 2025. All rights reserved.</string>
 </dict>
 </plist>

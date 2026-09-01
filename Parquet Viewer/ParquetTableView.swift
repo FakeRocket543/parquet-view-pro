@@ -10,6 +10,9 @@ import AppKit
 struct ParquetTableView: NSViewRepresentable {
     let columns: [String]
     let rows: [[String]]
+    /// Absolute index of the first displayed row (0-based) so the row-number
+    /// gutter stays correct after Jump-to-Row / pagination
+    var startRow: Int = 0
     let onLoadMore: () -> Void
     let hasMoreData: Bool
     let isLoadingMore: Bool
@@ -25,6 +28,7 @@ struct ParquetTableView: NSViewRepresentable {
     init(
         columns: [String],
         rows: [[String]],
+        startRow: Int = 0,
         onLoadMore: @escaping () -> Void = {},
         hasMoreData: Bool = false,
         isLoadingMore: Bool = false,
@@ -38,6 +42,7 @@ struct ParquetTableView: NSViewRepresentable {
     ) {
         self.columns = columns
         self.rows = rows
+        self.startRow = startRow
         self.onLoadMore = onLoadMore
         self.hasMoreData = hasMoreData
         self.isLoadingMore = isLoadingMore
@@ -74,6 +79,7 @@ struct ParquetTableView: NSViewRepresentable {
             col.width = 150
             col.minWidth = 50
             col.maxWidth = 500
+            col.resizingMask = [.userResizingMask, .autoresizingMask]
             tableView.addTableColumn(col)
         }
 
@@ -101,22 +107,65 @@ struct ParquetTableView: NSViewRepresentable {
         context.coordinator.dataTable = tableView
         context.coordinator.dataScrollView = scrollView
 
+        // Infinite scroll: observe clip-view bounds changes and trigger
+        // onLoadMore near the bottom
+        scrollView.contentView.postsBoundsChangedNotifications = true
+        let scrollObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView,
+            queue: .main
+        ) { [weak coordinator = context.coordinator] _ in
+            coordinator?.dataTableDidScroll()
+        }
+        context.coordinator.scrollObserver = scrollObserver
+
         return scrollView
     }
 
-    func updateNSView(_ scrollView: NSScrollView, context: Context) {
-        context.coordinator.columns = columns
-        context.coordinator.rows = rows
-        context.coordinator.hasMoreData = hasMoreData
-        context.coordinator.isLoadingMore = isLoadingMore
-        context.coordinator.fontSize = tableFontSize
-        context.coordinator.sortColumn = sortColumn
-        context.coordinator.sortAscending = sortAscending
+    static func dismantleNSView(_ scrollView: NSScrollView, coordinator: Coordinator) {
+        if let observer = coordinator.scrollObserver {
+            NotificationCenter.default.removeObserver(observer)
+            coordinator.scrollObserver = nil
+        }
+    }
 
-        context.coordinator.dataTable?.reloadData()
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        let coordinator = context.coordinator
+        let columnLayoutChanged = coordinator.columns != columns
+        coordinator.columns = columns
+        coordinator.rows = rows
+        coordinator.startRow = startRow
+        coordinator.hasMoreData = hasMoreData
+        coordinator.isLoadingMore = isLoadingMore
+        coordinator.fontSize = tableFontSize
+        coordinator.sortColumn = sortColumn
+        coordinator.sortAscending = sortAscending
+
+        // Add/remove NSTableColumns so a different file loaded into the same
+        // tab never shows stale columns with blank cells
+        if let table = coordinator.dataTable, columnLayoutChanged {
+            for col in table.tableColumns where col.identifier.rawValue != "col_rownum" {
+                table.removeTableColumn(col)
+            }
+            for (index, name) in columns.enumerated() {
+                let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("col_\(index)"))
+                col.title = name
+                col.width = 150
+                col.minWidth = 50
+                col.maxWidth = 500
+                col.resizingMask = [.userResizingMask, .autoresizingMask]
+                table.addTableColumn(col)
+            }
+        }
+
+        // Reload only when the data fingerprint changed
+        if coordinator.reloadToken != coordinator.lastReloadToken {
+            coordinator.lastReloadToken = coordinator.reloadToken
+            coordinator.dataTable?.reloadData()
+        }
 
         // Update sort indicators (skip col_rownum at index 0)
-        if let table = context.coordinator.dataTable {
+        if let table = coordinator.dataTable {
             for (index, name) in columns.enumerated() {
                 let id = NSUserInterfaceItemIdentifier("col_\(index)")
                 if let tc = table.tableColumns.first(where: { $0.identifier == id }) {
@@ -144,6 +193,7 @@ struct ParquetTableView: NSViewRepresentable {
     class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         var columns: [String]
         var rows: [[String]]
+        var startRow: Int = 0
         var hasMoreData: Bool
         var isLoadingMore: Bool
         var fontSize: Double = 13.0
@@ -158,6 +208,22 @@ struct ParquetTableView: NSViewRepresentable {
 
         weak var dataTable: NSTableView?
         weak var dataScrollView: NSScrollView?
+        var scrollObserver: NSObjectProtocol?
+        /// Cheap fingerprint of the last-rendered data; reloadData only fires
+        /// when it changes, so unrelated SwiftUI updates (search keystrokes,
+        /// focus changes) no longer wipe selection and scroll anchoring
+        var lastReloadToken: Int = -1
+
+        var reloadToken: Int {
+            var hasher = Hasher()
+            hasher.combine(columns)
+            hasher.combine(rows.count)
+            hasher.combine(startRow)
+            hasher.combine(rows.first)
+            hasher.combine(rows.last)
+            hasher.combine(fontSize)
+            return hasher.finalize()
+        }
 
         init(
             columns: [String], rows: [[String]],
@@ -221,7 +287,9 @@ struct ParquetTableView: NSViewRepresentable {
             tf?.font = NSFont.monospacedSystemFont(ofSize: fontSize, weight: .regular)
 
             if identifier.rawValue == "col_rownum" {
-                tf?.stringValue = String(row + 1)
+                // Absolute row number (1-based) — stays aligned with the
+                // global row range shown in the search bar after jumps
+                tf?.stringValue = String(startRow + row + 1)
                 tf?.alignment = .center
                 tf?.textColor = .secondaryLabelColor
             } else if let idxStr = identifier.rawValue.split(separator: "_").last,
@@ -350,7 +418,9 @@ struct ParquetTableView: NSViewRepresentable {
 
         // MARK: - Pagination
 
-        @objc func dataTableDidScroll(_ notification: Notification) {
+        /// Called on clip-view bounds changes (registered in makeNSView);
+        /// triggers onLoadMore when the user scrolls near the bottom
+        func dataTableDidScroll() {
             if let table = dataTable, hasMoreData, !isLoadingMore {
                 let visible = table.rows(in: table.visibleRect)
                 if visible.upperBound - 1 >= rows.count - 10 {
@@ -394,8 +464,13 @@ class DataTableHeaderView: NSTableHeaderView {
         if column >= 0, let tv = self.tableView, column < tv.tableColumns.count {
             let tc = tv.tableColumns[column]
             guard tc.identifier.rawValue != "col_rownum" else { return }
+            // Column titles carry the sort indicator ("▲/▼") when sorted —
+            // strip it from the menu title
+            let cleanTitle = tc.title
+                .replacingOccurrences(of: " ▲", with: "")
+                .replacingOccurrences(of: " ▼", with: "")
             let menu = NSMenu()
-            let item = NSMenuItem(title: "Copy Column \"\(tc.title)\"", action: #selector(copyColumnAction), keyEquivalent: "")
+            let item = NSMenuItem(title: "table.copy_column".localizedWithFormat(cleanTitle), action: #selector(copyColumnAction), keyEquivalent: "")
             item.target = self
             item.representedObject = column
             menu.addItem(item)

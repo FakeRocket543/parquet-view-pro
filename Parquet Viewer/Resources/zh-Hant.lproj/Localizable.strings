@@ -1,74 +1,167 @@
-/* ??????? */
+/* 繁體中文本地化 */
 
-/* ?????? */
-"app.name" = "Parquet ???";
+/* 應用程式名稱 */
+"app.name" = "Parquet View Pro";
 
-/* ???? */
-"menu.file" = "??";
-"menu.open" = "??...";
-"menu.export" = "?? CSV...";
-"menu.close" = "??";
+/* 選單項目 */
+"menu.file" = "檔案";
+"menu.open" = "開啟檔案...";
+"menu.export" = "匯出為 CSV...";
+"menu.close" = "關閉";
 
-/* ?? */
-"button.open_file" = "????";
-"button.export_csv" = "?? CSV";
-"button.settings" = "??";
-"button.done" = "??";
-"button.retry" = "??";
-"button.clear" = "??";
+/* 按鈕 */
+"button.open_file" = "打開檔案";
+"button.export_csv" = "匯出 CSV";
+"button.settings" = "設定";
+"button.done" = "完成";
+"button.retry" = "重試";
+"button.clear" = "清除";
 
-/* ???? */
-"welcome.title" = "???? Parquet ???";
-"welcome.subtitle" = "?? Parquet ? CSV ???????";
-"welcome.drag_drop" = "????????";
+/* 歡迎畫面 */
+"welcome.title" = "歡迎使用 Parquet 檢視器";
+"welcome.subtitle" = "開啟資料檔案即可開始";
+"welcome.drag_drop" = "或將檔案拖放到此處";
 
-/* ???? */
-"fileinfo.title" = "????";
-"fileinfo.name" = "??";
-"fileinfo.size" = "??";
-"fileinfo.columns" = "???";
-"fileinfo.rows" = "??";
+/* 檔案資訊 */
+"fileinfo.title" = "目前檔案";
+"fileinfo.name" = "名稱";
+"fileinfo.size" = "大小";
+"fileinfo.columns" = "欄數";
+"fileinfo.rows" = "列數";
 
-/* ???? */
-"recent.title" = "????";
+/* 最近檔案 */
+"recent.title" = "最近開啟的檔案";
 
-/* ?? */
-"search.placeholder" = "??...";
+/* 搜尋 */
+"search.placeholder" = "搜尋...";
 
-/* ??? */
-"loading.message" = "?? Parquet ???...";
+/* 載入 */
+"loading.message" = "正在載入檔案...";
 
-/* ?? */
-"error.title" = "??";
-"error.no_file" = "?????";
-"error.no_connection" = "??????";
-"error.failed_to_load" = "??????";
+/* 錯誤 */
+"error.title" = "錯誤";
+"error.no_file" = "尚未載入檔案";
+"error.no_connection" = "無資料庫連線";
+"error.failed_to_load" = "檔案載入失敗：%@";
 
-/* ?? */
-"settings.title" = "??";
-"settings.appearance" = "??";
-"settings.theme" = "??";
-"settings.theme.auto" = "??";
-"settings.theme.light" = "??";
-"settings.theme.dark" = "??";
-"settings.ui_scale" = "????";
-"settings.language" = "??";
-"settings.language.title" = "????";
-"settings.language.auto" = "??????";
-"settings.language.english" = "English";
-"settings.language.chinese" = "????";
-"settings.performance" = "??";
-"settings.max_rows" = "??????";
-"settings.max_rows_description" = "??????????";
-"settings.about" = "??";
-"settings.version" = "??";
-"settings.build" = "??";
+/* 設定 */
+"settings.title" = "設定";
+"settings.appearance" = "外觀";
+"settings.theme" = "佈景主題";
+"settings.theme.auto" = "自動";
+"settings.theme.light" = "淺色";
+"settings.theme.dark" = "深色";
+"settings.ui_scale" = "介面縮放";
+"settings.language" = "語言";
+"settings.language.title" = "顯示語言";
+"settings.language.auto" = "自動（系統）";
+"settings.language.english" = "英文";
+"settings.language.chinese" = "繁體中文";
+"settings.performance" = "效能";
+"settings.max_rows" = "最大載入列數";
+"settings.max_rows_description" = "較高的值可能影響效能";
+"settings.about" = "關於";
+"settings.version" = "版本";
+"settings.build" = "建置";
 
-/* ?? */
-"export.success.title" = "????";
-"export.success.message" = "?????? %@";
-"export.failed.title" = "????";
+/* 匯出 */
+"export.success.title" = "匯出成功";
+"export.success.message" = "資料已匯出至 %@";
+"export.failed.title" = "匯出失敗";
 
-/* ?? */
-"alert.ok" = "??";
-"alert.cancel" = "??";
+/* 提示 */
+"alert.ok" = "好";
+"alert.cancel" = "取消";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "開啟檔案...";
+"menu.close_tab" = "關閉分頁";
+"menu.find" = "尋找...";
+"menu.tab" = "分頁";
+"menu.new_tab" = "新增分頁";
+"menu.close_other_tabs" = "關閉其他分頁";
+"menu.close_all_tabs" = "關閉所有分頁";
+"menu.next_tab" = "下一個分頁";
+"menu.previous_tab" = "上一個分頁";
+"menu.increase_font" = "放大字體";
+"menu.decrease_font" = "縮小字體";
+"menu.reset_font" = "重設字體大小";
+"menu.about" = "關於 %@";
+"export.as_csv" = "匯出為 CSV";
+"export.as_parquet" = "匯出為 Parquet";
+"export.menu" = "匯出";
+"button.open" = "開啟";
+"button.clear_search" = "清除搜尋";
+"button.quit" = "結束";
+"button.reset" = "重設";
+"tooltip.jump_to_row" = "跳至特定列...";
+"tooltip.new_tab" = "新增分頁（⌘T）";
+"search.no_results" = "找不到結果";
+"search.no_match" = "沒有與「%@」相符的資料";
+"file.no_data" = "此檔案不包含資料";
+"search.rows_range" = "第 %1$d–%2$d 列，共 %3$d 列";
+"search.action" = "搜尋";
+"loading.generic" = "載入中...";
+"jump.title" = "跳至特定列";
+"jump.row_number" = "列編號（1 到 %d）：";
+"jump.row_placeholder" = "輸入列編號";
+"jump.rows_to_load" = "要載入的列數：";
+"jump.rows_placeholder" = "預設：1000";
+"jump.recommended" = "（建議：1000-%d）";
+"jump.info" = "將從指定列開始載入資料";
+"jump.action" = "跳至";
+"csv.issue.title" = "CSV 檔案問題";
+"csv.issue.detected" = "偵測到問題";
+"csv.action.ignore_and_load" = "載入檔案（忽略錯誤）";
+"csv.action.skip_last_row" = "跳過最後一行並載入";
+"csv.action.open_external" = "用外部編輯器修復";
+"csv.action.retry_settings" = "使用不同解析設定";
+"csv.issue.not_found" = "找不到檔案";
+"csv.issue.empty" = "檔案為空";
+"csv.issue.encoding" = "無法讀取檔案編碼";
+"csv.issue.no_content" = "檔案沒有內容";
+"csv.issue.header" = "無法解析標題列";
+"csv.issue.unmatched_quotes" = "第 %d 行引號不配對";
+"csv.issue.truncated" = "最後一行被截斷（預期 %1$d 欄，實際 %2$d 欄）";
+"csv.issue.mismatch" = "第 %1$d 行欄位數量不符（預期 %2$d，實際 %3$d）";
+"settings.features" = "功能";
+"settings.multiple_tabs" = "啟用多重分頁";
+"settings.max_tabs_value" = "最大分頁數：%d";
+"settings.max_tabs_description" = "可同時開啟的分頁數量上限";
+"settings.relaunch_note" = "重新啟動後生效";
+"settings.shortcuts" = "鍵盤快速鍵";
+"settings.theme.system" = "跟隨系統";
+"settings.font_size" = "表格字體大小：%d pt";
+"settings.font_default" = "%d（預設）";
+"settings.font_hint" = "使用 Cmd +/- 或 Cmd 0 調整表格字體大小";
+"settings.language.restart" = "重新啟動應用程式後語言變更才會生效。";
+"shortcuts.select_tab" = "選擇分頁";
+"tab.untitled" = "未命名";
+"tab.close_others" = "關閉其他";
+"tab.close_all" = "全部關閉";
+"table.copy" = "拷貝";
+"table.copy_column" = "拷貝欄「%@」";
+"fileinfo.sorted_by" = "排序方式：%@";
+"dialog.select_multiple" = "選擇一或多個要檢視的資料檔案";
+"dialog.select_single" = "選擇要檢視的資料檔案";
+"alert.quit.title" = "結束 %@";
+"alert.quit.message" = "確定要結束嗎？所有開啟的分頁都會關閉。";
+"menu.select_tab" = "選擇分頁 %d";
+"settings.max_rows_value" = "最大載入列數：%d";
+"settings.max_rows_note" = "適用於變更後開啟的檔案；較高的值可能影響效能";
+"settings.app" = "應用程式";
+"batch.partial.title" = "部分檔案未能開啟";
+"batch.partial.detail" = "成功開啟：%1$d 個
+開啟失敗：%2$d 個
+
+原因：已達分頁上限（%3$d）。
+
+失敗的檔案：
+%4$@
+
+提示：可在設定中調高分頁上限或關閉部分分頁。";
+"batch.success.title" = "檔案成功開啟";
+"batch.success.detail" = "已在個別分頁中成功開啟 %d 個檔案。";
+"tabs.limit.title" = "已達分頁上限";
+"tabs.limit.detail" = "最多允許 %d 個分頁。請關閉部分分頁或在設定中調高上限。";
+"error.repair_write_failed" = "寫入修復後的檔案失敗：%@";

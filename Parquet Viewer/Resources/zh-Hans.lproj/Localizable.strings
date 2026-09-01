@@ -1,9 +1,9 @@
 /* 简体中文本地化 */
 
-"app.name" = "Parquet 查看器";
+"app.name" = "Parquet View Pro";
 "menu.file" = "文件";
-"menu.open" = "打开...";
-"menu.export" = "导出 CSV...";
+"menu.open" = "打开文件...";
+"menu.export" = "导出为 CSV...";
 "menu.close" = "关闭";
 "button.open_file" = "打开文件";
 "button.export_csv" = "导出 CSV";
@@ -12,7 +12,7 @@
 "button.retry" = "重试";
 "button.clear" = "清除";
 "welcome.title" = "欢迎使用 Parquet 查看器";
-"welcome.subtitle" = "打开 Parquet 或 CSV 文件开始使用";
+"welcome.subtitle" = "打开数据文件即可开始";
 "welcome.drag_drop" = "或将文件拖放到此处";
 "fileinfo.title" = "当前文件";
 "fileinfo.name" = "名称";
@@ -25,7 +25,7 @@
 "error.title" = "错误";
 "error.no_file" = "未加载文件";
 "error.no_connection" = "无数据库连接";
-"error.failed_to_load" = "文件加载失败";
+"error.failed_to_load" = "文件加载失败：%@";
 "settings.title" = "设置";
 "settings.appearance" = "外观";
 "settings.theme" = "主题";
@@ -49,3 +49,96 @@
 "export.failed.title" = "导出失败";
 "alert.ok" = "确定";
 "alert.cancel" = "取消";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "打开文件...";
+"menu.close_tab" = "关闭标签页";
+"menu.find" = "查找...";
+"menu.tab" = "标签页";
+"menu.new_tab" = "新建标签页";
+"menu.close_other_tabs" = "关闭其他标签页";
+"menu.close_all_tabs" = "关闭所有标签页";
+"menu.next_tab" = "下一个标签页";
+"menu.previous_tab" = "上一个标签页";
+"menu.increase_font" = "放大字体";
+"menu.decrease_font" = "缩小字体";
+"menu.reset_font" = "重置字体大小";
+"menu.about" = "关于 %@";
+"export.as_csv" = "导出为 CSV";
+"export.as_parquet" = "导出为 Parquet";
+"export.menu" = "导出";
+"button.open" = "打开";
+"button.clear_search" = "清除搜索";
+"button.quit" = "退出";
+"button.reset" = "重置";
+"tooltip.jump_to_row" = "跳转到行...";
+"tooltip.new_tab" = "新建标签页 (⌘T)";
+"search.no_results" = "未找到结果";
+"search.no_match" = "没有与“%@”匹配的数据";
+"file.no_data" = "此文件不包含数据";
+"search.rows_range" = "第 %1$d–%2$d 行，共 %3$d 行";
+"search.action" = "搜索";
+"loading.generic" = "加载中...";
+"jump.title" = "跳转到行";
+"jump.row_number" = "行号（1 到 %d）：";
+"jump.row_placeholder" = "输入行号";
+"jump.rows_to_load" = "要加载的行数：";
+"jump.rows_placeholder" = "默认：1000";
+"jump.recommended" = "（建议：1000-%d）";
+"jump.info" = "将从指定行开始加载数据";
+"jump.action" = "跳转";
+"csv.issue.title" = "CSV 文件问题";
+"csv.issue.detected" = "检测到问题";
+"csv.action.ignore_and_load" = "载入文件（忽略错误）";
+"csv.action.skip_last_row" = "跳过最后一行并载入";
+"csv.action.open_external" = "用外部编辑器修复";
+"csv.action.retry_settings" = "尝试其他解析设定";
+"csv.issue.not_found" = "未找到文件";
+"csv.issue.empty" = "文件为空";
+"csv.issue.encoding" = "无法读取文件编码";
+"csv.issue.no_content" = "文件没有内容";
+"csv.issue.header" = "无法解析标题行";
+"csv.issue.unmatched_quotes" = "第 %d 行引号不配对";
+"csv.issue.truncated" = "最后一行被截断（预期 %1$d 列，实际 %2$d 列）";
+"csv.issue.mismatch" = "第 %1$d 行列数不符（预期 %2$d，实际 %3$d）";
+"settings.features" = "功能";
+"settings.multiple_tabs" = "启用多标签页";
+"settings.max_tabs_value" = "最大标签页数：%d";
+"settings.max_tabs_description" = "可同时打开的标签页数量上限";
+"settings.relaunch_note" = "重新启动后生效";
+"settings.shortcuts" = "键盘快捷键";
+"settings.theme.system" = "跟随系统";
+"settings.font_size" = "表格字体大小：%d pt";
+"settings.font_default" = "%d（默认）";
+"settings.font_hint" = "使用 Cmd +/- 或 Cmd 0 调整表格字体大小";
+"settings.language.restart" = "重启应用后语言更改才会生效。";
+"shortcuts.select_tab" = "选择标签页";
+"tab.untitled" = "未命名";
+"tab.close_others" = "关闭其他";
+"tab.close_all" = "全部关闭";
+"table.copy" = "拷贝";
+"table.copy_column" = "拷贝列“%@”";
+"fileinfo.sorted_by" = "排序依据：%@";
+"dialog.select_multiple" = "选择一个或多个要查看的数据文件";
+"dialog.select_single" = "选择要查看的数据文件";
+"alert.quit.title" = "退出 %@";
+"alert.quit.message" = "确定要退出吗？所有打开的标签页都将关闭。";
+"menu.select_tab" = "选择标签页 %d";
+"settings.max_rows_value" = "最大加载行数：%d";
+"settings.max_rows_note" = "适用于更改后打开的文件；较高的值可能影响性能";
+"settings.app" = "应用";
+"batch.partial.title" = "部分文件未能打开";
+"batch.partial.detail" = "成功打开：%1$d 个
+打开失败：%2$d 个
+
+原因：已达标签页上限（%3$d）。
+
+失败的文件：
+%4$@
+
+提示：可在设置中调高标签页上限或关闭部分标签页。";
+"batch.success.title" = "文件成功打开";
+"batch.success.detail" = "已在单独标签页中成功打开 %d 个文件。";
+"tabs.limit.title" = "已达标签页上限";
+"tabs.limit.detail" = "最多允许 %d 个标签页。请关闭部分标签页或在设置中调高上限。";
+"error.repair_write_failed" = "写入修复后的文件失败：%@";

@@ -4,6 +4,7 @@
 
 import SwiftUI
 import Combine
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @StateObject private var tabManager = TabManager()
@@ -19,25 +20,21 @@ struct ContentView: View {
     
     // Combine cancellables for notification subscriptions
     @State private var cancellables = Set<AnyCancellable>()
-    
+
+    // Drives the native View ▸ Toggle Sidebar command
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
     // Current tab's dbManager (computed from tabManager)
     private var dbManager: DuckDBManager? {
         tabManager.currentDBManager
     }
-    
-    // Zoom state
-    @State private var currentZoom: CGFloat = 1.0
-    @State private var steadyZoom: CGFloat = 1.0
-    @State private var scrollOffset: CGSize = .zero
-    private let minZoom: CGFloat = 0.5
-    private let maxZoom: CGFloat = 3.0
-    
+
     private var recentFiles: [URL] {
         (try? JSONDecoder().decode([URL].self, from: recentFilesData)) ?? []
     }
-    
+
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             // Sidebar
             sidebarView
                 .frame(minWidth: 220)
@@ -79,13 +76,18 @@ struct ContentView: View {
             return true
         }
         .onAppear {
+            // onAppear can fire more than once (fullscreen transitions,
+            // sidebar restore) — clear old subscriptions or every Cmd
+            // shortcut would fire twice
+            cancellables.removeAll()
             setupNotificationsWithCombine()
             setupTabNotificationsWithCombine()
             enableFullScreen()
         }
         .onChange(of: tabManager.selectedTabID) { _ in
-            // Reset search text when switching tabs
-            searchText = ""
+            // Sync the search field with the incoming tab's actual filter
+            // state, so a filtered tab never shows an empty search box
+            searchText = tabManager.currentDBManager?.activeFilterText ?? ""
             // Tab switched - data is already in the tab's dbManager, just update selectedFile
             if let currentTab = tabManager.currentTab, let fileURL = currentTab.fileURL {
                 selectedFile = fileURL
@@ -102,13 +104,13 @@ struct ContentView: View {
                         Button {
                             exportCSV()
                         } label: {
-                            Label("Export as CSV", systemImage: "doc.text")
+                            Label("export.as_csv".localized, systemImage: "doc.text")
                         }
                         
                         Button {
                             exportParquet()
                         } label: {
-                            Label("Export as Parquet", systemImage: "doc.badge.gearshape")
+                            Label("export.as_parquet".localized, systemImage: "doc.badge.gearshape")
                         }
                     } label: {
                         Label("Export", systemImage: "square.and.arrow.up")
@@ -125,7 +127,10 @@ struct ContentView: View {
         .onOpenURL { url in
             loadFile(url: url)
         }
-        .sheet(isPresented: $showingSettings) {
+        .sheet(isPresented: $showingSettings, onDismiss: {
+            // Pick up settings that the manager caches at creation time
+            tabManager.reloadSettings()
+        }) {
             SettingsView()
         }
         .sheet(isPresented: $showingJumpDialog) {
@@ -134,12 +139,17 @@ struct ContentView: View {
                 jumpRowCount: $jumpRowCount,
                 totalRows: dbManager?.totalRowCount ?? 0,
                 onJump: {
-                    if let rowNum = Int(jumpToRowNumber), let rowCount = Int(jumpRowCount), let manager = dbManager {
-                        Task {
-                            await manager.jumpToRow(rowNum, rowsToLoad: rowCount)
-                        }
-                        showingJumpDialog = false
+                    guard let manager = dbManager else { return }
+                    // Clamp authoritatively here — the dialog's disabled
+                    // state is advisory only
+                    let rowNum = min(max(Int(jumpToRowNumber) ?? 1, 1),
+                                     max(manager.totalRowCount, 1))
+                    let rowCount = min(max(Int(jumpRowCount) ?? DataConstants.defaultMaxRows, 1),
+                                       DataConstants.maxMaxRows)
+                    Task {
+                        await manager.jumpToRow(rowNum, rowsToLoad: rowCount)
                     }
+                    showingJumpDialog = false
                 },
                 onCancel: {
                     showingJumpDialog = false
@@ -157,7 +167,7 @@ struct ContentView: View {
                 Image(systemName: "doc.text.fill")
                     .font(.system(size: 32))
                     .foregroundColor(.blue)
-                Text("Parquet View")
+                Text("app.name".localized)
                     .font(.title2)
                     .bold()
             }
@@ -168,6 +178,18 @@ struct ContentView: View {
             // File Info
             if let manager = dbManager, let info = manager.fileInfo {
                 FileInfoSection(info: info, totalRows: manager.totalRowCount)
+
+                // Active sort indicator
+                if let sortCol = manager.sortColumn {
+                    HStack {
+                        Image(systemName: manager.sortAscending ? "arrow.up" : "arrow.down")
+                            .foregroundColor(.blue)
+                        Text("fileinfo.sorted_by".localizedWithFormat(sortCol))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top, 4)
+                }
             }
             
             // Open File Button
@@ -176,7 +198,7 @@ struct ContentView: View {
             } label: {
                 HStack {
                     Image(systemName: "folder")
-                    Text("Open")
+                    Text("button.open".localized)
                     Spacer()
                 }
             }
@@ -287,28 +309,21 @@ struct ContentView: View {
         // 顯示結果訊息
         if !failedFiles.isEmpty {
             let alert = NSAlert()
-            alert.messageText = "Some Files Not Opened"
-            alert.informativeText = """
-                Successfully opened: \(successCount) file(s)
-                Failed to open: \(failedFiles.count) file(s)
-                
-                Reason: Tab limit (\(tabManager.maxTabs)) reached.
-                
-                Failed files:
-                \(failedFiles.joined(separator: "\n"))
-                
-                Tip: Increase tab limit in Settings or close some tabs.
-                """
+            alert.messageText = "batch.partial.title".localized
+            alert.informativeText = "batch.partial.detail".localizedWithFormat(
+                successCount, failedFiles.count, tabManager.maxTabs,
+                failedFiles.joined(separator: "\n")
+            )
             alert.alertStyle = .informational
-            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: "alert.ok".localized)
             alert.runModal()
         } else if successCount > 1 {
             // 成功開啟多個檔案，顯示提示
             let alert = NSAlert()
-            alert.messageText = "Files Opened Successfully"
-            alert.informativeText = "Successfully opened \(successCount) files in separate tabs."
+            alert.messageText = "batch.success.title".localized
+            alert.informativeText = "batch.success.detail".localizedWithFormat(successCount)
             alert.alertStyle = .informational
-            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: "alert.ok".localized)
             
             // 自動關閉通知（2秒後）
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -337,10 +352,10 @@ struct ContentView: View {
                 if !tabManager.addTab(fileURL: url) {
                     // Show alert if tab limit reached
                     let alert = NSAlert()
-                    alert.messageText = "Tab Limit Reached"
-                    alert.informativeText = "Maximum \(tabManager.maxTabs) tabs allowed. Close some tabs or increase the limit in Settings."
+                    alert.messageText = "tabs.limit.title".localized
+                    alert.informativeText = "tabs.limit.detail".localizedWithFormat(tabManager.maxTabs)
                     alert.alertStyle = .warning
-                    alert.addButton(withTitle: "OK")
+                    alert.addButton(withTitle: "alert.ok".localized)
                     alert.runModal()
                     return
                 }
@@ -378,7 +393,9 @@ struct ContentView: View {
             panel.nameFieldStringValue = selectedFile?.deletingPathExtension().lastPathComponent.appending(".csv") ?? "export.csv"
             panel.message = "Export data to CSV"
         case .parquet:
-            panel.allowedContentTypes = [.init(filenameExtension: "parquet")!]
+            if let parquetType = UTType(filenameExtension: "parquet") {
+                panel.allowedContentTypes = [parquetType]
+            }
             panel.nameFieldStringValue = selectedFile?.deletingPathExtension().lastPathComponent.appending(".parquet") ?? "export.parquet"
             panel.message = "Export data to Parquet"
         }
@@ -571,7 +588,7 @@ struct ContentView: View {
             .store(in: &cancellables)
     }
     
-    // MARK: - Zoom Functions
+    // MARK: - Font Size Functions
     
     private func increaseFontSize() {
         tableFontSize = min(tableFontSize + 1, 20)
@@ -592,19 +609,6 @@ struct ContentView: View {
                 window.titlebarAppearsTransparent = false
             }
         }
-    }
-}
-
-// MARK: - Dynamic Font Scale Environment Key
-
-private struct DynamicFontScaleKey: EnvironmentKey {
-    static let defaultValue: Double = 1.0
-}
-
-extension EnvironmentValues {
-    var dynamicFontScale: Double {
-        get { self[DynamicFontScaleKey.self] }
-        set { self[DynamicFontScaleKey.self] = newValue }
     }
 }
 

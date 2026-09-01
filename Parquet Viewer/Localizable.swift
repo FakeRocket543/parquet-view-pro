@@ -1,63 +1,101 @@
-// Localization Helper
-// Provides easy access to localized strings
-// SM-12: Internationalization
+// Localizable.swift
+// Bundle-aware localization lookup for SPM resource bundles.
+//
+// SwiftUI's Text("literal") resolves against Bundle.main, but the .strings
+// tables live in the SPM-generated ParquetViewLib resource bundle — so all
+// lookups here go through Bundle.module (with the user's AppleLanguages
+// override applied) and fall back to English when a key is missing in the
+// selected language.
 
 import Foundation
 
-extension String {
-    /// Localized string lookup
-    var localized: String {
-        return NSLocalizedString(self, comment: "")
+enum L10nBundle {
+    /// Resource bundle containing the .lproj tables (SPM generates this).
+    static let module: Bundle = Bundle.module
+
+    /// The user's preferred language (Settings ▸ Language writes
+    /// AppleLanguages; requires an app restart to take effect).
+    static var preferredCode: String? {
+        UserDefaults.standard.stringArray(forKey: "AppleLanguages")?.first
     }
-    
-    /// Localized string with format arguments
-    func localized(with arguments: CVarArg...) -> String {
-        return String(format: NSLocalizedString(self, comment: ""), arguments: arguments)
+
+    /// Resolve an .lproj inside the SPM resource bundle. SPM lowercases
+    /// directory names (zh-Hans → zh-hans), so try canonical, underscored
+    /// and lowercased spellings.
+    static func bundle(forCode code: String) -> Bundle? {
+        let candidates = [
+            code,
+            code.replacingOccurrences(of: "-", with: "_"),
+            code.lowercased(),
+            code.replacingOccurrences(of: "-", with: "_").lowercased(),
+        ]
+        for candidate in candidates {
+            if let path = module.path(forResource: candidate, ofType: "lproj"),
+               let bundle = Bundle(path: path) {
+                return bundle
+            }
+        }
+        return nil
+    }
+
+    /// English fallback table.
+    static let enFallback: Bundle = bundle(forCode: "en") ?? module
+
+    /// Preferred table, memoized per AppleLanguages value — the expensive
+    /// path scan only reruns when the preference actually changes.
+    private static var cachedKey: [String] = []
+    private static var cachedBundle: Bundle = resolvePreferred([])
+
+    private static func resolvePreferred(_ codes: [String]) -> Bundle {
+        for code in codes {
+            guard !code.isEmpty else { continue }
+            // Progressively strip region qualifiers: zh-Hans-CN → zh-Hans → zh
+            var candidate = code
+            for _ in 0...1 {
+                if let b = bundle(forCode: candidate), b !== enFallback {
+                    return b
+                }
+                if let idx = candidate.lastIndex(of: "-") {
+                    candidate = String(candidate[..<idx])
+                } else {
+                    break
+                }
+            }
+        }
+        return enFallback
+    }
+
+    /// Bundle for the preferred language, or the English fallback table.
+    static var preferred: Bundle {
+        let codes = UserDefaults.standard.stringArray(forKey: "AppleLanguages") ?? []
+        if codes != cachedKey {
+            cachedKey = codes
+            cachedBundle = resolvePreferred(codes)
+        }
+        return cachedBundle
     }
 }
 
-/// Localization keys
-enum L10n {
-    // App
-    static let appName = "app.name".localized
-    
-    // Buttons
-    static let openFile = "button.open_file".localized
-    static let exportCSV = "button.export_csv".localized
-    static let settings = "button.settings".localized
-    static let done = "button.done".localized
-    static let retry = "button.retry".localized
-    static let clear = "button.clear".localized
-    
-    // Welcome
-    static let welcomeTitle = "welcome.title".localized
-    static let welcomeSubtitle = "welcome.subtitle".localized
-    static let welcomeDragDrop = "welcome.drag_drop".localized
-    
-    // File Info
-    static let fileinfoTitle = "fileinfo.title".localized
-    static let fileinfoName = "fileinfo.name".localized
-    static let fileinfoSize = "fileinfo.size".localized
-    static let fileinfoColumns = "fileinfo.columns".localized
-    static let fileinfoRows = "fileinfo.rows".localized
-    
-    // Recent Files
-    static let recentTitle = "recent.title".localized
-    
-    // Search
-    static let searchPlaceholder = "search.placeholder".localized
-    
-    // Loading
-    static let loadingMessage = "loading.message".localized
-    
-    // Error
-    static let errorTitle = "error.title".localized
-    
-    // Settings
-    static let settingsTitle = "settings.title".localized
-    static let settingsAppearance = "settings.appearance".localized
-    static let settingsTheme = "settings.theme".localized
-    static let settingsLanguage = "settings.language".localized
-    static let settingsPerformance = "settings.performance".localized
-    static let settingsAbout = "settings.about".localized
+extension String {
+    /// Localized value for this key. Two-stage lookup: preferred language
+    /// table first, English table when the key is missing there (so locales
+    /// that lag behind the key catalog degrade to English instead of showing
+    /// raw dotted keys).
+    var localized: String {
+        let preferredBundle = L10nBundle.preferred
+        let value = preferredBundle.localizedString(forKey: self, value: self, table: nil)
+        if value != self || preferredBundle === L10nBundle.enFallback {
+            if value != self { return value }
+            // key missing in en too
+            return self
+        }
+        let enValue = L10nBundle.enFallback.localizedString(forKey: self, value: self, table: nil)
+        return enValue != self ? enValue : self
+    }
+
+    /// Localized format string applied to arguments, e.g.
+    /// "search.rows_range".localizedWithFormat(1, 100, 5000)
+    func localizedWithFormat(_ args: CVarArg...) -> String {
+        String(format: localized, locale: Locale.current, arguments: args)
+    }
 }

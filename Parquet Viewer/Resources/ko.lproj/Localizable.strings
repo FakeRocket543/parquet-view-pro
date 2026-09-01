@@ -25,7 +25,7 @@
 "error.title" = "오류";
 "error.no_file" = "로드된 파일 없음";
 "error.no_connection" = "데이터베이스 연결 없음";
-"error.failed_to_load" = "파일 로드 실패";
+"error.failed_to_load" = "파일 로드 실패: %@";
 "settings.title" = "설정";
 "settings.appearance" = "외관";
 "settings.theme" = "테마";
@@ -49,3 +49,96 @@
 "export.failed.title" = "내보내기 실패";
 "alert.ok" = "확인";
 "alert.cancel" = "취소";
+
+/* Round-2 i18n wiring */
+"menu.open_file" = "파일 열기...";
+"menu.close_tab" = "탭 닫기";
+"menu.find" = "찾기...";
+"menu.tab" = "탭";
+"menu.new_tab" = "새 탭";
+"menu.close_other_tabs" = "다른 탭 닫기";
+"menu.close_all_tabs" = "모든 탭 닫기";
+"menu.next_tab" = "다음 탭";
+"menu.previous_tab" = "이전 탭";
+"menu.increase_font" = "글자 크게";
+"menu.decrease_font" = "글자 작게";
+"menu.reset_font" = "글자 크기 재설정";
+"menu.about" = "%@ 정보";
+"export.as_csv" = "CSV로 내보내기";
+"export.as_parquet" = "Parquet으로 내보내기";
+"export.menu" = "내보내기";
+"button.open" = "열기";
+"button.clear_search" = "검색 지우기";
+"button.quit" = "종료";
+"button.reset" = "재설정";
+"tooltip.jump_to_row" = "행으로 이동...";
+"tooltip.new_tab" = "새 탭(⌘T)";
+"search.no_results" = "검색 결과 없음";
+"search.no_match" = "'%@'에 일치하는 데이터가 없습니다";
+"file.no_data" = "이 파일에는 데이터가 없습니다";
+"search.rows_range" = "전체 %3$d행 중 %1$d-%2$d행";
+"search.action" = "검색";
+"loading.generic" = "로드 중...";
+"jump.title" = "행으로 이동";
+"jump.row_number" = "행 번호(1에서 %d까지):";
+"jump.row_placeholder" = "행 번호 입력";
+"jump.rows_to_load" = "로드할 행 수:";
+"jump.rows_placeholder" = "기본값: 1000";
+"jump.recommended" = "(권장: 1000-%d)";
+"jump.info" = "지정한 행부터 데이터가 로드됩니다";
+"jump.action" = "이동";
+"csv.issue.title" = "CSV 파일 문제";
+"csv.issue.detected" = "문제가 감지됨";
+"csv.action.ignore_and_load" = "파일 로드(오류 무시)";
+"csv.action.skip_last_row" = "마지막 행을 건너뛰고 로드";
+"csv.action.open_external" = "외부 편집기에서 수정";
+"csv.action.retry_settings" = "다른 파싱 설정 시도";
+"csv.issue.not_found" = "파일을 찾을 수 없음";
+"csv.issue.empty" = "파일이 비어 있음";
+"csv.issue.encoding" = "파일 인코딩을 읽을 수 없음";
+"csv.issue.no_content" = "파일에 내용이 없음";
+"csv.issue.header" = "헤더 행을 구문 분석할 수 없음";
+"csv.issue.unmatched_quotes" = "%d행에서 따옴표가 짝이 맞지 않음";
+"csv.issue.truncated" = "마지막 행이 잘렸습니다(예상 %1$d열, 발견 %2$d열)";
+"csv.issue.mismatch" = "%1$d행의 열 수가 잘못되었습니다(예상 %2$d, 발견 %3$d)";
+"settings.features" = "기능";
+"settings.multiple_tabs" = "여러 탭 사용";
+"settings.max_tabs_value" = "최대 탭 수: %d";
+"settings.max_tabs_description" = "동시에 열 수 있는 탭의 최대 개수";
+"settings.relaunch_note" = "다시 시작한 후 적용됩니다";
+"settings.shortcuts" = "키보드 단축키";
+"settings.theme.system" = "시스템";
+"settings.font_size" = "테이블 글자 크기: %d pt";
+"settings.font_default" = "%d(기본값)";
+"settings.font_hint" = "Cmd +/- 또는 Cmd 0으로 테이블의 글자 크기를 조절할 수 있습니다";
+"settings.language.restart" = "언어 변경을 적용하려면 앱을 다시 시작하세요.";
+"shortcuts.select_tab" = "탭 선택";
+"tab.untitled" = "제목 없음";
+"tab.close_others" = "다른 탭 닫기";
+"tab.close_all" = "모두 닫기";
+"table.copy" = "복사";
+"table.copy_column" = "열 “%@” 복사";
+"fileinfo.sorted_by" = "정렬 기준: %@";
+"dialog.select_multiple" = "볼 데이터 파일을 하나 이상 선택하세요";
+"dialog.select_single" = "볼 데이터 파일을 선택하세요";
+"alert.quit.title" = "%@ 종료";
+"alert.quit.message" = "종료하시겠습니까? 열려 있는 모든 탭이 닫힙니다.";
+"menu.select_tab" = "탭 %d 선택";
+"settings.max_rows_value" = "최대 로드 행 수: %d";
+"settings.max_rows_note" = "이 변경 후에 열리는 파일에 적용되며, 높은 값은 성능에 영향을 줄 수 있습니다";
+"settings.app" = "앱";
+"batch.partial.title" = "일부 파일을 열지 못했습니다";
+"batch.partial.detail" = "성공적으로 열림: %1$d
+열지 못함: %2$d
+
+원인: 탭 제한(%3$d)에 도달했습니다.
+
+열지 못한 파일:
+%4$@
+
+팁: 설정에서 탭 제한을 늘리거나 일부 탭을 닫으세요.";
+"batch.success.title" = "파일이 성공적으로 열렸습니다";
+"batch.success.detail" = "%d개의 파일을 별도의 탭에서 열었습니다.";
+"tabs.limit.title" = "탭 제한에 도달했습니다";
+"tabs.limit.detail" = "최대 %d개의 탭을 사용할 수 있습니다. 일부 탭을 닫거나 설정에서 제한을 늘리세요.";
+"error.repair_write_failed" = "복구된 파일 쓰기 실패: %@";
