@@ -230,6 +230,7 @@ extension Notification.Name {
     static let exportParquet = Notification.Name("exportParquet")
     static let focusSearch = Notification.Name("focusSearch")
     static let showSettings = Notification.Name("showSettings")
+    static let copyTableSelection = Notification.Name("copyTableSelection")
     static let increaseFontSize = Notification.Name("increaseFontSize")
     static let decreaseFontSize = Notification.Name("decreaseFontSize")
     static let resetFontSize = Notification.Name("resetFontSize")

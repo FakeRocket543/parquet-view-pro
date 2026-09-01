@@ -142,3 +142,11 @@
 "tabs.limit.title" = "تم بلوغ حد علامات التبويب";
 "tabs.limit.detail" = "الحد الأقصى المسموح به %d من علامات التبويب. أغلق بعض علامات التبويب أو زد الحد في الإعدادات.";
 "error.repair_write_failed" = "فشل كتابة الملف الذي تم إصلاحه: %@";
+"loading.appending" = "جارٍ تحميل المزيد من البيانات...";
+"loading.counting" = "جارٍ عدّ الصفوف...";
+"loading.range" = "جارٍ تحميل البيانات (%1$d إلى %2$d)...";
+"loading.parsing" = "جارٍ تحليل البيانات...";
+"loading.finalizing" = "جارٍ الإنهاء...";
+"loading.complete" = "تم!";
+"loading.stats" = "جارٍ حساب الإحصاءات...";
+"error.invalid_row" = "رقم الصف غير صالح. يجب أن يكون بين 1 و %d";

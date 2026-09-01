@@ -142,3 +142,11 @@
 "tabs.limit.title" = "ট্যাব সীমা পূর্ণ";
 "tabs.limit.detail" = "সর্বোচ্চ %d টি ট্যাব অনুমোদিত। কিছু ট্যাব বন্ধ করুন বা সেটিংসে সীমা বাড়ান।";
 "error.repair_write_failed" = "মেরামত করা ফাইল লেখা ব্যর্থ হয়েছে: %@";
+"loading.appending" = "আরও ডেটা লোড হচ্ছে...";
+"loading.counting" = "সারি গণনা হচ্ছে...";
+"loading.range" = "ডেটা লোড হচ্ছে (%1$d থেকে %2$d)...";
+"loading.parsing" = "ডেটা পার্স হচ্ছে...";
+"loading.finalizing" = "সম্পন্ন করা হচ্ছে...";
+"loading.complete" = "সম্পন্ন!";
+"loading.stats" = "পরিসংখ্যান গণনা হচ্ছে...";
+"error.invalid_row" = "অবৈধ সারি নম্বর। অবশ্যই 1 থেকে %d এর মধ্যে হতে হবে";

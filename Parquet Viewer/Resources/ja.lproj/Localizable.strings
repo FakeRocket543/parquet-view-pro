@@ -142,3 +142,11 @@
 "tabs.limit.title" = "タブ数の上限に達しました";
 "tabs.limit.detail" = "タブは最大 %d 個までです。一部のタブを閉じるか、設定で上限を上げてください。";
 "error.repair_write_failed" = "修復したファイルの書き込みに失敗しました：%@";
+"loading.appending" = "追加データを読み込み中...";
+"loading.counting" = "行数を数えています...";
+"loading.range" = "データを読み込み中（%1$d〜%2$d）...";
+"loading.parsing" = "データを解析中...";
+"loading.finalizing" = "仕上げ中...";
+"loading.complete" = "完了！";
+"loading.stats" = "統計を計算中...";
+"error.invalid_row" = "行番号が無効です。1〜%d の範囲で指定してください";

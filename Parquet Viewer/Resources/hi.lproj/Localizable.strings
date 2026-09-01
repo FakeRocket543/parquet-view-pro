@@ -142,3 +142,11 @@
 "tabs.limit.title" = "टैब सीमा पूरी हो गई";
 "tabs.limit.detail" = "अधिकतम %d टैब अनुमत हैं। कुछ टैब बंद करें या सेटिंग्स में सीमा बढ़ाएँ।";
 "error.repair_write_failed" = "मरम्मत की गई फ़ाइल लिखने में विफल: %@";
+"loading.appending" = "अधिक डेटा लोड हो रहा है...";
+"loading.counting" = "पंक्तियाँ गिनी जा रही हैं...";
+"loading.range" = "डेटा लोड हो रहा है (%1$d से %2$d)...";
+"loading.parsing" = "डेटा पार्स हो रहा है...";
+"loading.finalizing" = "अंतिम रूप दिया जा रहा है...";
+"loading.complete" = "पूर्ण!";
+"loading.stats" = "आंकड़े गिने जा रहे हैं...";
+"error.invalid_row" = "अवैध पंक्ति संख्या। 1 से %d के बीच होनी चाहिए";

@@ -142,3 +142,13 @@
 "tabs.limit.title" = "已达标签页上限";
 "tabs.limit.detail" = "最多允许 %d 个标签页。请关闭部分标签页或在设置中调高上限。";
 "error.repair_write_failed" = "写入修复后的文件失败：%@";
+"table.sort_ascending" = "按升序排序：%@";
+"table.sort_descending" = "按降序排序：%@";
+"loading.appending" = "正在加载更多数据...";
+"loading.counting" = "正在统计行数...";
+"loading.range" = "正在加载数据（%1$d 至 %2$d）...";
+"loading.parsing" = "正在解析数据...";
+"loading.finalizing" = "正在完成...";
+"loading.complete" = "完成！";
+"loading.stats" = "正在计算统计信息...";
+"error.invalid_row" = "行号无效。必须在 1 到 %d 之间";

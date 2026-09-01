@@ -142,3 +142,11 @@ Tipp: Erhöhen Sie das Tab-Limit in den Einstellungen oder schließen Sie einige
 "tabs.limit.title" = "Tab-Limit erreicht";
 "tabs.limit.detail" = "Maximal %d Tabs erlaubt. Schließen Sie einige Tabs oder erhöhen Sie das Limit in den Einstellungen.";
 "error.repair_write_failed" = "Reparierte Datei konnte nicht geschrieben werden: %@";
+"loading.appending" = "Weitere Daten werden geladen ...";
+"loading.counting" = "Zeilen werden gezählt ...";
+"loading.range" = "Daten werden geladen (%1$d bis %2$d) ...";
+"loading.parsing" = "Daten werden ausgewertet ...";
+"loading.finalizing" = "Wird abgeschlossen ...";
+"loading.complete" = "Fertig!";
+"loading.stats" = "Statistiken werden berechnet ...";
+"error.invalid_row" = "Ungültige Zeilennummer. Muss zwischen 1 und %d liegen";

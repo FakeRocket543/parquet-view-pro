@@ -8,7 +8,7 @@ A fast, native macOS app for viewing data files, powered by **Swift** and **Duck
 - **Drag & Drop** — Drop files anywhere to open
 - **Tabs** — Open multiple files simultaneously
 - **Search & Filter** — Quick text search across all columns or by column
-- **Sort** — Click column headers to sort
+- **Sort** — Click column headers, or use the header context menu (keyboard-reachable)
 - **Jump to Row** — Jump directly to any row in large files
 - **Infinite Scroll** — Pages load automatically as you scroll (memory-capped window)
 - **Export** — Export to CSV or Parquet
@@ -53,7 +53,7 @@ For a fully assembled, signed, DMG-packaged build, use [`build_pro.sh`](build_pr
 swift test
 ```
 
-103 tests: unit tests (TabManager, DuckDBManager, SecurityHelper, CSVIntegrityChecker),
+117 tests: unit tests (TabManager, DuckDBManager, SecurityHelper, CSVIntegrityChecker, Logic),
 `LocalizationTests` (key parity, lookup, format specifiers), and `E2ERealFileTests` —
 end-to-end tests that generate real Parquet/CSV/JSON fixtures through DuckDB and
 drive the actual `DuckDBManager` (type fidelity, pagination, filter/sort interplay,
@@ -63,14 +63,17 @@ integrity edge cases, concurrency, security). CI runs on every push
 ## Usage
 
 - **Open File** — `Cmd + O` or drag & drop
-- **Search** — Type in search bar, press Enter
+- **Search** — Type in search bar, press Enter; `Cmd + F` focuses the field
 - **Sort** — Click column header
 - **Jump to Row** — Arrow button next to the row counter (large files)
 - **Font Size** — `Cmd + / - / 0`
-- **Export** — Toolbar menu → Export as CSV / Parquet
+- **Export** — Toolbar menu, or `Shift + Cmd + E` (CSV) / `Option + Cmd + E` (Parquet)
+- **Copy** — `Cmd + C` copies the selection; double-click copies a single cell; right-click a column header copies the whole column
 - **Tabs** — `Cmd + T` new tab, `Shift + Cmd + W` close tab, `Cmd + W` close window,
-  `Cmd + 1…9` select tab, `Shift + Cmd + [ / ]` previous/next tab
+  `Cmd + 1…9, 0` select tab (0 = tab 10), `Shift + Cmd + [ / ]` previous/next tab
+- **Scroll** — Infinite scroll in both directions; after a jump, scrolling above the window start loads the previous page
 - **Language** — Settings ▸ Language (applies after relaunch)
+- **Settings** — `Cmd + ,`
 
 ## Supported Formats
 

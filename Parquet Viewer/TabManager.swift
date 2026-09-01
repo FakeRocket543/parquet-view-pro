@@ -203,6 +203,7 @@ struct TabBarView: View {
                     }
                     .buttonStyle(.plain)
                     .help("tooltip.new_tab".localized)
+                    .accessibilityLabel("menu.new_tab".localized)
                 }
             }
             .padding(.horizontal, 8)
@@ -226,10 +227,11 @@ struct TabItemView: View {
     
     var body: some View {
         HStack(spacing: 4) {
-            // File icon
+            // File icon (decorative)
             Image(systemName: fileIcon)
                 .font(.system(size: 11))
                 .foregroundColor(isSelected ? .accentColor : .secondary)
+                .accessibilityHidden(true)
             
             // File name
             Text(tab.displayName)
@@ -237,7 +239,8 @@ struct TabItemView: View {
                 .lineLimit(1)
                 .foregroundColor(isSelected ? .primary : .secondary)
             
-            // Close button
+            // Close button — labeled and focus-visible (opacity 0 hides it
+            // from Full Keyboard Access / VoiceOver otherwise)
             Button {
                 onClose()
             } label: {
@@ -247,7 +250,8 @@ struct TabItemView: View {
                     .frame(width: 14, height: 14)
             }
             .buttonStyle(.plain)
-            .opacity(isHovering || isSelected ? 1 : 0)
+            .opacity(isHovering || isSelected ? 1 : 0.25)
+            .accessibilityLabel("menu.close_tab".localized + ": " + tab.displayName)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -255,6 +259,9 @@ struct TabItemView: View {
             RoundedRectangle(cornerRadius: 6)
                 .fill(isSelected ? Color(NSColor.selectedContentBackgroundColor) : Color.clear)
         )
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+        .accessibilityLabel(tab.displayName)
         .overlay(
             RoundedRectangle(cornerRadius: 6)
                 .strokeBorder(isSelected ? Color.accentColor.opacity(0.5) : Color.clear, lineWidth: 1)

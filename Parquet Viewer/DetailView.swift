@@ -181,18 +181,31 @@ struct DetailView: View {
                     columns: dbManager.columns,
                     rows: dbManager.rows,
                     startRow: dbManager.currentStartRow,
+                    pendingRowShift: dbManager.pendingRowShift,
+                    dataVersion: dbManager.dataVersion,
                     onLoadMore: {
                         Task {
                             await dbManager.loadMoreData()
                         }
                     },
+                    onLoadPrevious: {
+                        Task {
+                            await dbManager.loadPreviousData()
+                        }
+                    },
                     hasMoreData: dbManager.hasMoreData,
+                    hasPreviousData: dbManager.currentStartRow > 0,
                     isLoadingMore: dbManager.isLoadingMore,
                     sortColumn: dbManager.sortColumn,
                     sortAscending: dbManager.sortAscending,
                     onSort: { columnName in
                         Task {
                             await dbManager.toggleSort(for: columnName)
+                        }
+                    },
+                    onSortDirected: { columnName, ascending in
+                        Task {
+                            await dbManager.sortByColumn(columnName, ascending: ascending)
                         }
                     }
                 )
@@ -216,8 +229,14 @@ struct DetailView: View {
                 if let truncated = CSVIntegrityChecker.createTruncatedContent(
                     from: fileURL, upToRow: upToRow
                 ) {
+                    // Readable name — the sidebar shows this; add a short
+                    // suffix only on collision
+                    var tempName = "repaired_\(fileURL.lastPathComponent)"
+                    if FileManager.default.fileExists(atPath: FileManager.default.temporaryDirectory.appendingPathComponent(tempName).path) {
+                        tempName = "repaired_\(String(UUID().uuidString.prefix(6)))_\(fileURL.lastPathComponent)"
+                    }
                     let tempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("skipped_\(UUID().uuidString)_\(fileURL.lastPathComponent)")
+                        .appendingPathComponent(tempName)
                     do {
                         try truncated.write(to: tempURL, atomically: true, encoding: .utf8)
                         // Manager owns temp cleanup alongside its transcodes

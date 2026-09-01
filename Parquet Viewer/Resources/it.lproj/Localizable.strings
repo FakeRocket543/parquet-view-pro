@@ -142,3 +142,11 @@ Suggerimento: aumenta il limite di schede nelle Impostazioni o chiudi alcune sch
 "tabs.limit.title" = "Limite di schede raggiunto";
 "tabs.limit.detail" = "Massimo %d schede consentite. Chiudi alcune schede o aumenta il limite nelle Impostazioni.";
 "error.repair_write_failed" = "Impossibile scrivere il file riparato: %@";
+"loading.appending" = "Caricamento di altri dati...";
+"loading.counting" = "Conteggio righe...";
+"loading.range" = "Caricamento dati (%1$d a %2$d)...";
+"loading.parsing" = "Analisi dei dati...";
+"loading.finalizing" = "Finalizzazione...";
+"loading.complete" = "Completato!";
+"loading.stats" = "Calcolo statistiche...";
+"error.invalid_row" = "Numero di riga non valido. Deve essere compreso tra 1 e %d";

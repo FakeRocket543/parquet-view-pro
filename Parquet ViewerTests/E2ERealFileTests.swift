@@ -650,6 +650,89 @@ final class E2ERealFileTests: XCTestCase {
         XCTAssertEqual(mgr.totalRowCount, 3)
     }
 
+    // MARK: - Upward pagination (round 5)
+
+    func testLoadPreviousDataPrependsPageAndAdjustsWindow() async throws {
+        let url = try makeParquet("updown.parquet", sql: """
+            SELECT i FROM range(1, 50001) t(i)
+            """)
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: url)
+        XCTAssertEqual(mgr.rows.count, 1000)
+
+        // Jump deep, then page back up above the window start
+        await mgr.jumpToRow(30000)
+        let iIdx = try XCTUnwrap(mgr.columns.firstIndex(of: "i"))
+        XCTAssertEqual(Int(mgr.rows[0][iIdx]), 30000)
+        XCTAssertEqual(mgr.currentStartRow, 29999)
+
+        await mgr.loadPreviousData()
+        // Window now starts one page earlier and is contiguous
+        XCTAssertEqual(mgr.currentStartRow, 29999 - 1000)
+        XCTAssertEqual(Int(mgr.rows[0][iIdx]), 29000, "first row is the prepended page's start")
+        XCTAssertEqual(mgr.rows.count, 2000)
+        let ids = mgr.rows.compactMap { Int($0[iIdx]) }
+        XCTAssertEqual(ids, Array(29000...30999), "prepended window must be contiguous")
+
+        // Paging above the window start at the top of the file is a no-op
+        let fresh = DuckDBManager()
+        await fresh.loadParquet(url: url)
+        await fresh.loadPreviousData()
+        XCTAssertEqual(fresh.currentStartRow, 0, "no previous page at the top of the file")
+        XCTAssertEqual(fresh.rows.count, 1000)
+    }
+
+    func testPrependModeRespectsWindowCapFromTail() async throws {
+        // Slide the window deep enough that prepending would exceed the cap;
+        // the tail must be trimmed (not the head we just prepended)
+        let url = try makeParquet("capup.parquet", sql: """
+            SELECT i FROM range(1, 30001) t(i)
+            """)
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: url)
+        await mgr.jumpToRow(20000)
+        for _ in 0..<10 { await mgr.loadMoreData() }   // window ~ at cap
+        let countBefore = mgr.rows.count
+        XCTAssertGreaterThanOrEqual(countBefore, 1000)
+
+        await mgr.loadPreviousData()
+        let windowCap = 10_000
+        XCTAssertLessThanOrEqual(mgr.rows.count, windowCap, "prepend must trim the tail, not exceed the cap")
+        let iIdx = try XCTUnwrap(mgr.columns.firstIndex(of: "i"))
+        let ids = mgr.rows.compactMap { Int($0[iIdx]) }
+        XCTAssertEqual(ids, Array(ids.min()!...ids.max()! ), "window stays contiguous")
+    }
+
+    func testPendingRowShiftSemantics() async throws {
+        // The one-shot anchor: nil = semantic reset, n = pure index shift
+        let url = try makeParquet("shift.parquet", sql: """
+            SELECT i FROM range(1, 50001) t(i)
+            """)
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: url)
+        XCTAssertNil(mgr.pendingRowShift, "fresh load is a semantic reset")
+
+        await mgr.filterData(searchText: "9999")
+        XCTAssertNil(mgr.pendingRowShift, "filter is a semantic reset")
+
+        await mgr.filterData(searchText: "")
+        await mgr.jumpToRow(20000)
+        XCTAssertNil(mgr.pendingRowShift, "jump is a semantic reset")
+
+        await mgr.loadPreviousData()
+        XCTAssertEqual(mgr.pendingRowShift, 1000, "prepend shifts +page")
+
+        await mgr.sortByColumn("i", ascending: false)
+        XCTAssertNil(mgr.pendingRowShift, "sort is a semantic reset")
+
+        // Downward trim past the window cap reports -overflow
+        let fresh = DuckDBManager()
+        await fresh.loadParquet(url: url)
+        await fresh.jumpToRow(20000)
+        for _ in 0..<11 { await fresh.loadMoreData() }
+        XCTAssertEqual(fresh.pendingRowShift, -1000, "trim shifts -overflow at cap")
+    }
+
     // MARK: - Security
 
     func testExoticFilePathsLoad() async throws {

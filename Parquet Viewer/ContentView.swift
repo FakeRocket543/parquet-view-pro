@@ -263,24 +263,32 @@ struct ContentView: View {
     
     private func openMultipleFiles(urls: [URL]) {
         guard FeatureFlags.tabsEnabled else { return }
-        
+
         var successCount = 0
+        var alreadyOpenCount = 0
         var failedFiles: [String] = []
-        
+        var firstOpenedTabFile: URL?
+
         for url in urls {
             // 檢查是否達到分頁上限
             if tabManager.tabs.count >= tabManager.maxTabs {
-                failedFiles.append(contentsOf: urls.dropFirst(successCount).map { $0.lastPathComponent })
+                failedFiles.append(contentsOf: urls.dropFirst(successCount + alreadyOpenCount).map { $0.lastPathComponent })
                 break
             }
-            
-            // 載入檔案到新分頁
+
+            // 已開啟的檔案：只選取既有分頁，不重複載入
+            if let existing = tabManager.tabs.first(where: { $0.fileURL == url }) {
+                if firstOpenedTabFile == nil { firstOpenedTabFile = url }
+                tabManager.selectTab(id: existing.id)
+                alreadyOpenCount += 1
+                continue
+            }
+
             addToRecentFiles(url)
-            
+
             // 檢查當前分頁是否為空
             if successCount == 0, let currentTab = tabManager.currentTab, currentTab.fileURL == nil {
                 // 更新當前空分頁
-                selectedFile = url
                 _ = tabManager.updateCurrentTab(fileURL: url)
                 Task {
                     await currentTab.dbManager.loadParquet(url: url)
@@ -289,47 +297,36 @@ struct ContentView: View {
                 // 創建新分頁
                 if tabManager.addTab(fileURL: url),
                    let newTab = tabManager.tabs.last {
-                    // 載入數據到新分頁的 dbManager
                     Task {
                         await newTab.dbManager.loadParquet(url: url)
-                    }
-                    // 如果是最後一個檔案，切換到該分頁
-                    if url == urls.last {
-                        selectedFile = url
                     }
                 } else {
                     failedFiles.append(url.lastPathComponent)
                     continue
                 }
             }
-            
+            if firstOpenedTabFile == nil { firstOpenedTabFile = url }
             successCount += 1
         }
-        
-        // 顯示結果訊息
+
+        // 批次開完後停在第一個開啟的檔案，而不是 flicker 到最後一個
+        if let first = firstOpenedTabFile,
+           let tab = tabManager.tabs.first(where: { $0.fileURL == first }) {
+            tabManager.selectTab(id: tab.id)
+            selectedFile = first
+        }
+
+        // 只在有失敗時提示；全數成功時新分頁本身就是回饋
+        //（原本的自動關閉 modal 會阻斷互動且違反 HIG）
         if !failedFiles.isEmpty {
             let alert = NSAlert()
             alert.messageText = "batch.partial.title".localized
             alert.informativeText = "batch.partial.detail".localizedWithFormat(
-                successCount, failedFiles.count, tabManager.maxTabs,
+                successCount + alreadyOpenCount, failedFiles.count, tabManager.maxTabs,
                 failedFiles.joined(separator: "\n")
             )
             alert.alertStyle = .informational
             alert.addButton(withTitle: "alert.ok".localized)
-            alert.runModal()
-        } else if successCount > 1 {
-            // 成功開啟多個檔案，顯示提示
-            let alert = NSAlert()
-            alert.messageText = "batch.success.title".localized
-            alert.informativeText = "batch.success.detail".localizedWithFormat(successCount)
-            alert.alertStyle = .informational
-            alert.addButton(withTitle: "alert.ok".localized)
-            
-            // 自動關閉通知（2秒後）
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                NSApp.abortModal()
-            }
-            
             alert.runModal()
         }
     }

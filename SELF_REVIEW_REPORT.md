@@ -295,3 +295,45 @@ Settings **⌘,** 指令 + Esc/Return 快捷；⌘F 守衛改 `hasLoadedFile`（
 ## R4.6 Round 4 證據
 
 **115 tests, 0 failures**（E2E 35 + Logic 4 + L10n 4 + 單元 72）+ 平行模式 3 連綠 + GUI 冒煙通過 + release DMG 實測啟動
+
+---
+
+# Round 5（2026-09-02，v1.4.0）
+
+## R5.1 新互動（R4.5 延宕項全數落地）
+
+| 功能 | 實作 |
+|---|---|
+| **向上分頁** | 滾過視窗頂端自動載入上一頁（prepend + 尾端同上限裁剪）；檔案頂端自然停止 |
+| **鍵盤可達排序** | 表頭右鍵選單「依遞增/遞減排序」（FKA/VO 可開）；點擊仍是 toggle；顯式方向走 `sortByColumn(ascending:)` |
+| **⌘C 複製** | responder-chain（`@objc(copy:)` 子類別）：表格聚焦時複製選取、搜尋框聚焦時複製文字 — 選單項搶捷徑的方案被 table agent 否決後改採正確機制 |
+| **雙擊複製單 cell** | `clickedRow/clickedColumn` 精確定位 |
+| 批次開檔 | 移除自動關閉 modal（新分頁即回饋）、**停在第一個開啟的分頁**、重複檔案感知（只選取既有分頁） |
+| 修復檔命名 | `repaired_<原名>`（碰撞才加短後綴），不再暴露 UUID |
+| Tab 無障礙 | isSelected/isButton 特徵、關閉鈕標籤 + 焦點可見、裝飾圖示隱藏、+ 鈕標籤 |
+
+## R5.2 表格深度 agent 的三個關鍵糾正（含推翻我自己 R5 初版實作）
+
+1. **捲動補償符號相反且會誤觸發**（我的初版以 `startRow` 差值啟發式補償：方向錯 2×、漏 intercell spacing、跳行/排序也會被「補償」到文件底）→ 改為 **manager 發佈 `pendingRowShift` 單次錨定**：nil=語義重置（跳行/過濾/排序 → 清選取）、n=純索引平移（prepend +n / 裁剪 -overflow → **保留選取** + 錨定視窗）；捲動前先 `layoutSubtreeIfNeeded()`、stride 用 `rect(ofRow:)`（含間距）
+2. **分頁切換後回呼過期 — 滾動 B 分頁會把資料寫進 A 分頁的 manager**（SwiftUI 結構性身分保留 coordinator，`let` 回呼永不刷新）→ 全部改 `var` 並在 `updateNSView` 每次刷新
+3. **分頁 check-then-act 競態**（動量滾動在旗標繞行 MainActor 前連發觸發 → 重複/跳頁）→ `paginationInFlight` 在**同一 dbLock 臨界區**內讀取+設定
+
+其他：欄寬按名跨重建持久化（分頁/檔案切換不再重置 150pt）、表頭左右兩緣都讓給原生拖寬（左緣抓取不再誤觸排序）、cell 重用的鋸齒列殘值漏洞、`reloadToken` 改 `dataVersion`（hash-free 零偽陰性）
+
+## R5.3 DuckDBManager 最終審查 agent
+
+- **2 個 P1 競態**：發佈區塊內重新檢查 generation（clearData 復活 + 雙重 append 都在此關閉）；clearData 重置 `isLoading/isLoadingMore`（被超越的載入不會再清 → 永久轉圈）
+- **`loading.appending` 等 8 個鍵從未入庫**（我 R4 用了鍵但沒加 — 每次分頁顯示原始鍵名）→ 8 鍵 ×15 語系補齊（採 R2 翻譯表），進度訊息全部接鍵
+- 跨欄 OR 鏈 >1000 欄觸發 `max_expression_depth` → 500 一組分塊
+- 死碼清除（ExportFormat displayName/fileExtension、偽 sanitize 分支、currentSortCol）+ 匯出註釋誠實化（匯出全檔，非當前視圖/過濾）
+
+## R5.4 殘餘（誠實記錄）
+
+- 分頁改 `beginUpdates/insertRows` 增量更新（SDK 原生保留選取；現為 reloadData+shift 還原）
+- 排序指示改 `setIndicatorImage`（現仍寫在標題文字，右鍵選單需剝除）
+- 欄選取的選取保留、`dbLock` 裝飾性鎖清理（通往 @MainActor 重構的前置）
+- DuckDBCore actor 重構（設計已備，連兩輪評估為延後）
+
+## R5.5 Round 5 證據
+
+**118 tests, 0 failures**（E2E 37 + Logic 4 + L10n 4 + 單元 73）+ GUI 冒煙通過；15 語系 142 keys lint 全過

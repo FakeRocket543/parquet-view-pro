@@ -24,7 +24,7 @@ APP_PASSWORD="<app-specific-password>"  # appleid.apple.com → Sign-In and Secu
 
 APP_NAME="Parquet View Pro"
 BUNDLE_ID="com.parquetview.pro"
-VERSION="1.3.0"
+VERSION="1.4.0"
 BUILD_DIR=".build/arm64-apple-macosx/release"
 BINARY="Parquet-View"
 APP_BUNDLE="${APP_NAME}.app"

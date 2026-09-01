@@ -165,3 +165,13 @@
 "tabs.limit.title" = "已達分頁上限";
 "tabs.limit.detail" = "最多允許 %d 個分頁。請關閉部分分頁或在設定中調高上限。";
 "error.repair_write_failed" = "寫入修復後的檔案失敗：%@";
+"table.sort_ascending" = "依遞增排序：%@";
+"table.sort_descending" = "依遞減排序：%@";
+"loading.appending" = "正在載入更多資料...";
+"loading.counting" = "正在計算列數...";
+"loading.range" = "正在載入資料（%1$d 至 %2$d）...";
+"loading.parsing" = "正在解析資料...";
+"loading.finalizing" = "正在完成...";
+"loading.complete" = "完成！";
+"loading.stats" = "正在計算統計資訊...";
+"error.invalid_row" = "列編號無效。必須在 1 到 %d 之間";

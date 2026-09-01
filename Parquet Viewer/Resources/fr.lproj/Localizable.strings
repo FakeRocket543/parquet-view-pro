@@ -142,3 +142,11 @@ Astuce : augmentez la limite d'onglets dans les Réglages ou fermez des onglets.
 "tabs.limit.title" = "Limite d'onglets atteinte";
 "tabs.limit.detail" = "%d onglets maximum. Fermez des onglets ou augmentez la limite dans les Réglages.";
 "error.repair_write_failed" = "Échec d'écriture du fichier réparé : %@";
+"loading.appending" = "Chargement de données supplémentaires...";
+"loading.counting" = "Comptage des lignes...";
+"loading.range" = "Chargement des données (%1$d à %2$d)...";
+"loading.parsing" = "Analyse des données...";
+"loading.finalizing" = "Finalisation...";
+"loading.complete" = "Terminé !";
+"loading.stats" = "Calcul des statistiques...";
+"error.invalid_row" = "Numéro de ligne invalide. Il doit être compris entre 1 et %d";
