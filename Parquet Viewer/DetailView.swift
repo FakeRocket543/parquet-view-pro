@@ -31,85 +31,106 @@ struct DetailView: View {
                         handleCSVRepairAction(action, fileURL: fileURL)
                     }
                 )
-            } else if let error = dbManager.errorMessage {
-                ErrorView(message: error, retry: {
-                    if let file = selectedFile {
-                        // Retry must not re-apply the filter that may have
-                        // caused the failure — clear it, then reload the
-                        // known-failed file directly
-                        dbManager.resetFilter()
-                        Task {
-                            await dbManager.loadParquet(url: file, skipIntegrityCheck: true)
-                        }
-                    } else {
-                        openFile()
-                    }
-                })
+            } else if let error = dbManager.errorMessage,
+                      !dbManager.hasLoadedFile || dbManager.rows.isEmpty {
+                // No data to show behind the error → full-screen
+                ErrorView(message: error, retry: retryAction)
             } else if !dbManager.hasLoadedFile {
                 // Show welcome screen only when no file has been loaded
                 WelcomeView(onOpen: openFile)
             } else {
-                // Show table view even if rows are empty (search result might be empty)
+                // Errors with data still on screen → dismissible banner above
+                // the table; the table (search, sort, export) stays usable
                 VStack(spacing: 0) {
-                    // Search and Navigation bar
-                    SearchBarView(
-                        searchText: $searchText,
-                        isSearchFocused: $isSearchFocused,
-                        totalRowCount: dbManager.totalRowCount,
-                        currentStartRow: dbManager.currentStartRow,
-                        displayedRowCount: dbManager.displayedRowCount,
-                        onSearch: { searchText in
-                            // Single funnel + dedupe: the clear button fires
-                            // immediately and the debounced onChange repeats
-                            // the same value — skip no-op reloads
-                            let effective = searchText.isEmpty ? nil : searchText
-                            guard effective != dbManager.activeFilterText else { return }
-                            Task {
-                                await dbManager.filterData(searchText: searchText)
-                            }
-                        },
-                        onShowJumpDialog: {
-                            showingJumpDialog = true
-                        }
-                    )
-
-                    Divider()
-
-                    // Data table or empty search result message
-                    if dbManager.rows.isEmpty {
-                        // Show "No results" message when search returns empty
-                        EmptyResultsView(searchText: searchText) {
-                            searchText = ""
-                            Task {
-                                await dbManager.filterData(searchText: "")
-                            }
-                        }
-                    } else {
-                        // Data table - using ParquetTableView directly
-                        ParquetTableView(
-                            columns: dbManager.columns,
-                            rows: dbManager.rows,
-                            startRow: dbManager.currentStartRow,
-                            onLoadMore: {
-                                Task {
-                                    await dbManager.loadMoreData()
-                                }
-                            },
-                            hasMoreData: dbManager.hasMoreData,
-                            isLoadingMore: dbManager.isLoadingMore,
-                            sortColumn: dbManager.sortColumn,
-                            sortAscending: dbManager.sortAscending,
-                            onSort: { columnName in
-                                Task {
-                                    await dbManager.toggleSort(for: columnName)
-                                }
-                            }
-                        )
+                    if let error = dbManager.errorMessage {
+                        ErrorBanner(message: error, onDismiss: {
+                            dbManager.errorMessage = nil
+                        }, onRetry: retryAction)
+                        Divider()
                     }
+                    tableContent
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var retryAction: () -> Void {
+        {
+            if let file = selectedFile {
+                // Retry must not re-apply the filter that may have caused
+                // the failure — clear it, then reload the known-failed file
+                dbManager.resetFilter()
+                Task {
+                    await dbManager.loadParquet(url: file, skipIntegrityCheck: true)
+                }
+            } else {
+                openFile()
+            }
+        }
+    }
+
+    /// Search bar + data table / empty state (shared by the normal path and
+    /// the error-banner path)
+    @ViewBuilder
+    private var tableContent: some View {
+        VStack(spacing: 0) {
+            // Search and Navigation bar
+            SearchBarView(
+                searchText: $searchText,
+                isSearchFocused: $isSearchFocused,
+                totalRowCount: dbManager.totalRowCount,
+                currentStartRow: dbManager.currentStartRow,
+                displayedRowCount: dbManager.displayedRowCount,
+                onSearch: { searchText in
+                    // Single funnel + dedupe: the clear button fires
+                    // immediately and the debounced onChange repeats the
+                    // same value — skip no-op reloads
+                    let effective = searchText.isEmpty ? nil : searchText
+                    guard effective != dbManager.activeFilterText else { return }
+                    Task {
+                        await dbManager.filterData(searchText: searchText)
+                    }
+                },
+                onShowJumpDialog: {
+                    showingJumpDialog = true
+                }
+            )
+
+            Divider()
+
+            // Data table or empty search result message
+            if dbManager.rows.isEmpty {
+                // Show "No results" message when search returns empty
+                EmptyResultsView(searchText: searchText) {
+                    searchText = ""
+                    Task {
+                        await dbManager.filterData(searchText: "")
+                    }
+                }
+            } else {
+                // Data table - using ParquetTableView directly
+                ParquetTableView(
+                    columns: dbManager.columns,
+                    rows: dbManager.rows,
+                    startRow: dbManager.currentStartRow,
+                    onLoadMore: {
+                        Task {
+                            await dbManager.loadMoreData()
+                        }
+                    },
+                    hasMoreData: dbManager.hasMoreData,
+                    isLoadingMore: dbManager.isLoadingMore,
+                    sortColumn: dbManager.sortColumn,
+                    sortAscending: dbManager.sortAscending,
+                    onSort: { columnName in
+                        Task {
+                            await dbManager.toggleSort(for: columnName)
+                        }
+                    }
+                )
+            }
+        }
     }
 
     /// Execute the repair action chosen in the CSV issue alert
@@ -148,9 +169,13 @@ struct DetailView: View {
         case .openWithExternalTool:
             NSWorkspace.shared.open(fileURL)
         case .retryWithDifferentSettings:
+            // Distinct from "ignore and load": re-run the integrity check
+            // against the (presumably externally fixed) file instead of
+            // skipping it
             dbManager.csvIssueResult = nil
+            dbManager.integrityCheckSuppressed = false
             Task {
-                await dbManager.loadParquet(url: fileURL, skipIntegrityCheck: true)
+                await dbManager.loadParquet(url: fileURL)
             }
         }
     }
@@ -205,11 +230,43 @@ struct ErrorView: View {
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+                .lineLimit(8)
 
             Button("button.retry".localized, action: retry)
                 .buttonStyle(.borderedProminent)
         }
         .padding()
+    }
+}
+
+/// Compact dismissible error banner shown above a still-usable table
+struct ErrorBanner: View {
+    let message: String
+    let onDismiss: () -> Void
+    let onRetry: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundColor(.orange)
+            Text(message)
+                .font(.callout)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+                .truncationMode(.tail)
+            Spacer()
+            Button("button.retry".localized, action: onRetry)
+                .buttonStyle(.borderless)
+            Button(action: onDismiss) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("alert.cancel".localized)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.12))
     }
 }
 

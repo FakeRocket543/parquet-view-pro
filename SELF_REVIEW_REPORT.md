@@ -190,3 +190,63 @@
 | Round 2 開始 | 90 | 全綠 |
 | 修復+新增後 | **103** | **全綠、0 失敗**（E2E 28 + Localization 4 + 單元 71） |
 | GUI 冒煙 | — | App 啟動 5 秒不崩潰（i18n 接線後） |
+
+---
+
+# Round 3（2026-09-02）
+
+## R3.1 效能（agent 以 CLI + 真 1.1.3 引擎實測 → 實作）
+
+| 項目 | 實測 | 實作 |
+|---|---|---|
+| 統計合併單掃描 | 20 欄/182MB CSV：逐欄 8.1s → 批次 0.39s（**21×**）；200 欄外推 ~315×；結果與逐欄位元組級一致（AVG 1–2 ULP 為 DuckDB 平行累加本質） | `calculateColumnStats` 單查詢 5×N 聚合 + 逐欄 fallback；`testBatchedColumnStatsAreCorrect` |
+| COUNT(*) 快取 | CSV 全掃 90ms/180MB（每次排序/跳頁都重跑）；Parquet 1–3ms（中繼資料） | per (path+filter) 快取、上限 64 條、收斂/clearData 時失效 |
+| 排序 tiebreaker 成本 | 每加一鍵 ~8–9×；深 OFFSET 再乘（5M offset + 10 鍵 = 2.8s/頁）— **Round 2 全欄位 tiebreaker 在寬表會成災** | 限制前 3 個決勝鍵（確定性保留、成本受控） |
+| DuckDB 升級 | v1.1.3 已是 duckdb-swift 最新 stable（新版全是 dev prerelease）；Swift API 162 commits 零變更 | 維持 1.1.3（報告記錄可精確釘 dev tag 的選項） |
+
+## R3.2 CSVIntegrityChecker 加強（final-diff agent 發現）
+
+- **hitCap 以真實檔案大小判定**（恰好 2MB 倍數的合法檔不再丟失末筆記錄）— `testCheckerHandlesFilesAroundCapBoundary`（精確位元組構造 2MB / 2MB+1 夾具）
+- **UTF-8 截尾迴圈 1–3 bytes**（固定截 3 可落在前一個多位元組字元中，誤判 CJK 檔編碼錯誤）
+- **分隔符嗅探**：分號 .csv 不再被逗號邏輯誤判 — `testSemicolonCSVPassesIntegrityCheckWithoutSkip`
+
+## R3.3 併發/i18n 邊角（final-diff agent 發現，全修）
+
+- 失敗的過濾載入死局：Retry 現在先 `resetFilter()` 再重載
+- 換檔重置中 @Published sort 屬性改主執行緒寫入
+- `removeTranscodedFiles` 上鎖；`clearData` 提升 generation（清除後在途作業不得回填）
+- UTF-16 轉碼：快取以 size+mtime 驗證（原始檔編輯後失效）、>512MB 防護跳過
+- 語言解析：AppleLanguages 陣列逐項 + 區域剝離（`zh-Hans-CN` → `zh-Hans`）、以偏好值為鍵記憶化
+- **本機系統語言（法文）實測證明查找正確跟隨系統語言**；測試改為語言中立
+- SidebarView / TabManager 殘留硬編碼字串接鍵；死代碼清理（.toggleSidebar 通知、.gitignore 條目）
+
+## R3.4 i18n 補齊（locale agent）
+
+- **15 語系全部 132 keys、完全同位、plutil 全過、placeholder 逐鍵對齊**（agent 並修復 12 檔既有 `error.failed_to_load` 缺 `%@` 的缺陷）
+- 修正報告：Round 2 記 121 keys 為誤（實為 132）
+
+## R3.5 版本與發佈就緒（docs agent）
+
+- **版本 1.3.0**（BuildConfig / Info.plist / 兩建置腳本一致）；`docs/release-notes/RELEASE_NOTES_v1.3.0.md` 依用戶可見影響分組撰寫
+- README 全面修訂：3 個 P1（錯誤 ⌘W、會造出無法啟動 bundle 的配方、過時 i18n 描述）+ 測試清單 + 架構線 + 用法（⇧⌘W 等）
+- `build_pro.sh`：改用專案 Info.plist（完整文件類型）+ 複製 SPM 資源 bundle + PkgInfo；`build_signed_dmg.sh`：BUNDLE_ID 對齊 + bundle 複製
+- Info.plist：CFBundleName 統一 Pro、JSONL/NDJSON 文件類型註冊
+- 刪 4 份損毀/過時文件（ZOOM_FEATURE_GUIDE、INSTALLATION_GUIDE、PROJECT_ARCHITECTURE、NSTABLEVIEW_MIGRATION_PLAN）
+- CI：加 timeout-minutes: 60（agent 驗證 YAML/runner/快取/平行化全數合宜）
+
+## R3.6 final-diff agent 裁決
+
+- 宣稱的 P0（`createTruncatedContent` off-by-one）經本地執行驗證為**誤報**（漏看 `check()` 回傳的 1-based +1 轉換；測試通過）
+- 其餘 P1×3、P2×4、P3×8 中：P1-3（README）與 P3-2（13 語系）已由本輪其他工作修畢；P1-1/P1-2/P2-1/2/3/4 見 R3.2/R3.3；`retryWithDifferentSettings` 與 `ignoreAndLoad` 行為相同（P3）記錄為後續項
+- 驗證為健全（無需修改）：generation+鎖無死鎖、filter→sort→jump→loadMore 狀態機、注入防護、觀察器生命週期、格式符號全部對齊
+
+## R3.7 殘餘風險（合併前後留意）
+
+1. CSVIntegrityChecker 的 cap/解碼啟發式在位元組對齊壓力下仍是最脆區域（本輪已加對抗測試）
+2. 錯誤路徑 UX：ErrorView 取代整個內容區的設計未重做（已緩解 Retry 死局）
+3. DuckDB 版本耦合行為（sniffer 方言、count 虛報收斂、VARCHAR 渲染）以觀察釘住、非契約保證 — 升級需重跑 E2E
+
+## R3.8 Round 3 測試證據
+
+- **106 tests, 0 failures**（E2E 31 + Localization 4 + 單元 71）；GUI 冒煙通過；15 語系 lint + 同位全過
+- 三輪累計：73 → 106 測試；兩個 P0、15 個 P1、20+ 個 P2/P3 修復；全部由測試釘住

@@ -131,7 +131,7 @@ class DuckDBManager: ObservableObject {
     }
     
     /// Load a Parquet file with optional row limit and offset
-    func loadParquet(url: URL, limit: Int? = nil, offset: Int? = nil, quickPreview: Bool = false, skipIntegrityCheck: Bool = false, appendMode: Bool = false) async {
+    func loadParquet(url: URL, limit: Int? = nil, offset: Int? = nil, skipIntegrityCheck: Bool = false, appendMode: Bool = false) async {
         let generation = beginOperation()
         await MainActor.run {
             isLoading = true
@@ -143,10 +143,10 @@ class DuckDBManager: ObservableObject {
                 // the user's current view
             }
             loadingProgress = 0.0
-            loadingMessage = quickPreview ? "Quick preview loading..." : (appendMode ? "Loading more data..." : "Loading file...")
+            loadingMessage = appendMode ? "loading.appending".localized : "loading.message".localized
         }
 
-        let rowLimit = quickPreview ? 100 : (limit ?? maxDisplayRows)
+        let rowLimit = limit ?? maxDisplayRows
 
         do {
             // SECURITY: Validate file path before processing
@@ -209,7 +209,7 @@ class DuckDBManager: ObservableObject {
             if skipIntegrityCheck { integrityCheckSuppressed = true }
 
             // CSV integrity check (only for CSV/TSV files and when not explicitly skipped)
-            if fileType.isCSVFamily && !skipIntegrityCheck && !integrityCheckSuppressed && !quickPreview {
+            if fileType.isCSVFamily && !skipIntegrityCheck && !integrityCheckSuppressed {
                 let checkResult = CSVIntegrityChecker.check(
                     url: url,
                     delimiter: fileType == .tsv ? "\t" : ","
