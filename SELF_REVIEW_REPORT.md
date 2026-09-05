@@ -337,3 +337,32 @@ Settings **⌘,** 指令 + Esc/Return 快捷；⌘F 守衛改 `hasLoadedFile`（
 ## R5.5 Round 5 證據
 
 **118 tests, 0 failures**（E2E 37 + Logic 4 + L10n 4 + 單元 73）+ GUI 冒煙通過；15 語系 142 keys lint 全過
+
+---
+
+# Round 6（2026-09-05）— 自行擷圖/自行操作迴圈
+
+## R6.1 環境與方法
+- 螢幕錄製權限未授予（需使用者在系統設定手動允許「ZCode Computer Use」）→ 改以 **AX 元素樹 + CGWindowList（地面真相）+ System Events + 功能性探針** 驅動與驗證
+- 真實 release bundle 啟動、`open -a` 文件事件、鍵盤互動（⌘F/⌘2/⌘⇧E）
+
+## R6.2 抓到並修復：多視窗堆疊 bug（Round 1 我自己引入）
+- **症狀**：`open -a`/Finder 開檔每份文件 +1 個堆疊視窗；被殺掉的 session 還原後啟動即 4–17 個堆疊視窗；AX 樹被選單副本灌爆（1000 元素上限全為 menuitem）
+- **根因鏈**：R1 為 Info.plist 補 `CFBundleDocumentTypes`（正確）→ SwiftUI `WindowGroup` 對每個 odoc 事件生成新視窗（錯誤行為浮現）；`onOpenURL` 在 macOS 上正是以「每文件一視窗」的方式接事件的機制
+- **修復**：`WindowGroup` → `Window`（單視窗 scene）；文件改由 AppDelegate `application(_:open:)` → `.openFileURL` 通知路由進既有視窗分頁；移除 `.onOpenURL`；實作 `shouldRestoreApplicationState = false` 並清除殘留 savedState
+- **驗證（CGWindowList 地面真相）**：launch = **1**、`open types.parquet` = 1、`open big.parquet` = 1 ✅
+- **教訓**：修復期間曾以錯誤檔名（`Parquet-View` vs `CFBundleExecutable` 的 `Parquet View Pro`）刷新 bundle，導致「以為已修」實則跑舊二進位；另一次 `git checkout .` 把未 commit 的修復清掉 — 兩者都靠「科學驗證」（探針 + 視窗計數）才定位
+
+## R6.3 i18n 真機驗證
+- 系統語言為法文：選單、側欄、歡迎畫面、Tab 選單（Onglet/Sélectionner l'onglet 1-10）全以法文渲染 — Bundle 查找/回退在真機運作 ✅
+- 小缺陷記錄：12 個「舊 49 鍵」語系的 `welcome.subtitle` 仍為過期文案（Parquet or CSV），en/zh 已更新 — 待統一
+
+## R6.4 發現但未解：AX 選單樹洪水（既有問題，非本輪回歸）
+- 全新啟動即有 **243 個 AXMenuBar / 44,693 個 AXMenuItem**（穩定、不隨查詢增長）；v1.3.0 同樣存在（235 個）— bisect 已排除 R5/R6 回歸
+- 影響：VoiceOver 使用者的樹被淹沒；外部 AX 自動化讀不到視窗內容
+- 已排除：執行期洩漏（穩定）、R5/R6 變更（v1.3.0 對照）、多實例干擾
+- 下一步假設：SwiftUI `.commands` 內容（含 `localizedWithFormat` 動態字串）造成的選單重建、或 AX 伺服器對「每此啟動」的註冊累積；需在乾淨帳號/重開機後對照
+
+## R6.5 狀態
+- 118 tests 全綠；commit `fix round 6` 已入 master
+- 待使用者：授予螢幕錄製權限後可進行完整視覺截圖迴圈
