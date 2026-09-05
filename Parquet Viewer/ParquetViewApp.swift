@@ -11,7 +11,12 @@ public struct ParquetViewApp: App {
     public init() {}
     
     public var body: some Scene {
-        WindowGroup {
+        // Single-window scene: with CFBundleDocumentTypes registered, every
+        // `open -a` / Finder open used to spawn an ADDITIONAL WindowGroup
+        // window (verified: 17 stacked windows after a few opens) instead of
+        // loading into the existing tab. Documents route via the AppDelegate
+        // `open` handler (onOpenURL would spawn an extra window per doc).
+        Window("Parquet View Pro", id: "main") {
             ContentView()
                 .frame(minWidth: 800, idealWidth: 1200, maxWidth: .infinity,
                        minHeight: 600, idealHeight: 800, maxHeight: .infinity)
@@ -195,6 +200,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Set activation policy to regular app (appears in Dock)
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // Documents from Finder / `open -a` route into the EXISTING window's
+    // tabs via ContentView's .openFileURL subscriber. Do NOT also attach
+    // `.onOpenURL` — on macOS, SwiftUI delivers odoc events to onOpenURL by
+    // creating an ADDITIONAL window per document (verified: 17 stacked
+    // windows after a few opens).
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where FileType.isSupported(url) {
+            NotificationCenter.default.post(
+                name: .openFileURL, object: nil,
+                userInfo: ["url": url]
+            )
+        }
+    }
+
+    // Opt out of window restoration: killed sessions piled up multiple
+    // stacked, identical windows at the next launch
+    func application(_ application: NSApplication, shouldRestoreApplicationState coder: NSCoder) -> Bool {
+        false
     }
     
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

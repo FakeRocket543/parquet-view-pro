@@ -235,6 +235,7 @@ extension Notification.Name {
     static let decreaseFontSize = Notification.Name("decreaseFontSize")
     static let resetFontSize = Notification.Name("resetFontSize")
     static let openFileFromTab = Notification.Name("openFileFromTab")
+    static let openFileURL = Notification.Name("openFileURL")
     static let createEmptyTab = Notification.Name("createEmptyTab")
     static let closeCurrentTab = Notification.Name("closeCurrentTab")
     static let closeOtherTabs = Notification.Name("closeOtherTabs")

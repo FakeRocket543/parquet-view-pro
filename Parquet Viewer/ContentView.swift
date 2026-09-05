@@ -124,9 +124,6 @@ struct ContentView: View {
                 }
             }
         }
-        .onOpenURL { url in
-            loadFile(url: url)
-        }
         .sheet(isPresented: $showingSettings, onDismiss: {
             // Pick up settings that the manager caches at creation time
             tabManager.reloadSettings()
@@ -472,6 +469,17 @@ struct ContentView: View {
             .sink { [weak tabManager] _ in
                 if let dbManager = tabManager?.currentDBManager, !dbManager.rows.isEmpty {
                     exportParquet()
+                }
+            }
+            .store(in: &cancellables)
+
+        // Files delivered via Finder / `open -a` (routed by AppDelegate;
+        // onOpenURL would spawn an extra window per document)
+        NotificationCenter.default.publisher(for: .openFileURL)
+            .receive(on: DispatchQueue.main)
+            .sink { notification in
+                if let url = notification.userInfo?["url"] as? URL {
+                    loadFile(url: url)
                 }
             }
             .store(in: &cancellables)
