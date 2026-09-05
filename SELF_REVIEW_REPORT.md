@@ -366,3 +366,10 @@ Settings **⌘,** 指令 + Esc/Return 快捷；⌘F 守衛改 `hasLoadedFile`（
 ## R6.5 狀態
 - 118 tests 全綠；commit `fix round 6` 已入 master
 - 待使用者：授予螢幕錄製權限後可進行完整視覺截圖迴圈
+
+## R6.6 補充：螢幕錄製授權後的視覺驗證（2026-09-06）
+- 使用者授予螢幕錄製權限；以 CGWindowListCreateImage 擷取 App 視窗（不搶前景）
+- **型別保真 P0 修復首次肉眼確認**：types.parquet 渲染 0.5 / 0.05 / 123.456789 / -0.25（修復前全為 "NULL"）；DECIMAL 以紫色語義著色
+- 法文 i18n 全 UI 生效（Fichier actuel / Fichiers récents / Rechercher...）
+- 單視窗多分頁正常（測試檔與使用者真實工作檔案並存）；檔案資訊（13 欄/1 列/2 KB）正確；深色模式正常
+- 截圖存 /tmp/pv_gui/（含私人檔名，不入 git）
