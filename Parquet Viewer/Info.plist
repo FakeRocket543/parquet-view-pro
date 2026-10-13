@@ -13,9 +13,9 @@
     <key>CFBundleExecutable</key>
     <string>Parquet-View</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.4.0</string>
+    <string>1.4.1</string>
     <key>CFBundleVersion</key>
-    <string>140</string>
+    <string>141</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>NSHighResolutionCapable</key>

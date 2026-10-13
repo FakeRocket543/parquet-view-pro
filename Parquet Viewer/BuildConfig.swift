@@ -18,7 +18,7 @@ struct FeatureFlags {
     static let bundleIdentifier = "com.parquetview.pro"
     
     /// Version string (keep in sync with release notes and Info.plist)
-    static let versionString = "1.4.0 Pro"
+    static let versionString = "1.4.1 Pro"
 }
 
 // MARK: - Settings Defaults
