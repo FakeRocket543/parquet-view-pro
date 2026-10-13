@@ -53,7 +53,7 @@ For a fully assembled, signed, DMG-packaged build, use [`build_pro.sh`](build_pr
 swift test
 ```
 
-117 tests: unit tests (TabManager, DuckDBManager, SecurityHelper, CSVIntegrityChecker, Logic),
+118 tests: unit tests (TabManager, DuckDBManager, SecurityHelper, CSVIntegrityChecker, Logic),
 `LocalizationTests` (key parity, lookup, format specifiers), and `E2ERealFileTests` —
 end-to-end tests that generate real Parquet/CSV/JSON fixtures through DuckDB and
 drive the actual `DuckDBManager` (type fidelity, pagination, filter/sort interplay,
