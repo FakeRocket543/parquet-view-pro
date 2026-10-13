@@ -12,7 +12,7 @@
 "button.retry" = "재시도";
 "button.clear" = "지우기";
 "welcome.title" = "Parquet 뷰어에 오신 것을 환영합니다";
-"welcome.subtitle" = "Parquet 또는 CSV 파일을 열어 시작하세요";
+"welcome.subtitle" = "데이터 파일을 열어 시작하세요";
 "welcome.drag_drop" = "또는 파일을 여기에 끌어다 놓으세요";
 "fileinfo.title" = "현재 파일";
 "fileinfo.name" = "이름";

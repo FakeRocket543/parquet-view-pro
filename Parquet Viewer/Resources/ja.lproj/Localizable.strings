@@ -12,7 +12,7 @@
 "button.retry" = "再試行";
 "button.clear" = "クリア";
 "welcome.title" = "Parquet ビューアへようこそ";
-"welcome.subtitle" = "Parquet または CSV ファイルを開いてください";
+"welcome.subtitle" = "データファイルを開いてください";
 "welcome.drag_drop" = "またはファイルをここにドラッグ＆ドロップ";
 "fileinfo.title" = "現在のファイル";
 "fileinfo.name" = "名前";

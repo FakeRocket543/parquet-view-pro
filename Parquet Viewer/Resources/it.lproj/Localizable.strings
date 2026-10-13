@@ -12,7 +12,7 @@
 "button.retry" = "Riprova";
 "button.clear" = "Cancella";
 "welcome.title" = "Benvenuto in Parquet View";
-"welcome.subtitle" = "Apri un file Parquet o CSV per iniziare";
+"welcome.subtitle" = "Apri un file di dati per iniziare";
 "welcome.drag_drop" = "o trascina un file qui";
 "fileinfo.title" = "File attuale";
 "fileinfo.name" = "Nome";

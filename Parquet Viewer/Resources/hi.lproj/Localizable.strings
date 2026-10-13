@@ -12,7 +12,7 @@
 "button.retry" = "पुनः प्रयास";
 "button.clear" = "साफ़ करें";
 "welcome.title" = "Parquet व्यूअर में आपका स्वागत है";
-"welcome.subtitle" = "शुरू करने के लिए Parquet या CSV फ़ाइल खोलें";
+"welcome.subtitle" = "शुरू करने के लिए डेटा फ़ाइल खोलें";
 "welcome.drag_drop" = "या फ़ाइल यहाँ खींचें और छोड़ें";
 "fileinfo.title" = "वर्तमान फ़ाइल";
 "fileinfo.name" = "नाम";

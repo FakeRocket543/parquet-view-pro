@@ -12,7 +12,7 @@
 "button.retry" = "Cuba Lagi";
 "button.clear" = "Padam";
 "welcome.title" = "Selamat Datang ke Parquet View";
-"welcome.subtitle" = "Buka fail Parquet atau CSV untuk bermula";
+"welcome.subtitle" = "Buka fail data untuk bermula";
 "welcome.drag_drop" = "atau seret dan lepas fail di sini";
 "fileinfo.title" = "Fail Semasa";
 "fileinfo.name" = "Nama";
