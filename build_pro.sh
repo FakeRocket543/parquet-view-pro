@@ -46,72 +46,19 @@ mkdir -p "$APP_DIR/Contents/Resources"
 # Copy executable
 cp "$BUILD_DIR/Parquet-View" "$APP_DIR/Contents/MacOS/$APP_NAME"
 
-# Create Info.plist
-cat > "$APP_DIR/Contents/Info.plist" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleExecutable</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleIdentifier</key>
-    <string>$BUNDLE_ID</string>
-    <key>CFBundleName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleDisplayName</key>
-    <string>$APP_NAME</string>
-    <key>CFBundleVersion</key>
-    <string>$VERSION</string>
-    <key>CFBundleShortVersionString</key>
-    <string>$VERSION</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>13.0</string>
-    <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>CFBundleDocumentTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeName</key>
-            <string>Parquet File</string>
-            <key>CFBundleTypeRole</key>
-            <string>Viewer</string>
-            <key>LSItemContentTypes</key>
-            <array>
-                <string>public.data</string>
-            </array>
-            <key>LSHandlerRank</key>
-            <string>Owner</string>
-            <key>CFBundleTypeExtensions</key>
-            <array>
-                <string>parquet</string>
-            </array>
-        </dict>
-        <dict>
-            <key>CFBundleTypeName</key>
-            <string>CSV File</string>
-            <key>CFBundleTypeRole</key>
-            <string>Viewer</string>
-            <key>LSItemContentTypes</key>
-            <array>
-                <string>public.comma-separated-values-text</string>
-            </array>
-            <key>LSHandlerRank</key>
-            <string>Alternate</string>
-            <key>CFBundleTypeExtensions</key>
-            <array>
-                <string>csv</string>
-            </array>
-        </dict>
-    </array>
-</dict>
-</plist>
-EOF
+# Copy the canonical Info.plist (single source: "Parquet Viewer/Info.plist")
+# and patch per-build fields — the old inline copy had drifted (missing
+# TSV/JSON/JSONL doc types + the org.apache.parquet UTI declaration)
+cp "Parquet Viewer/Info.plist" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Delete :CFBundleIdentifier" "$APP_DIR/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleIdentifier string $BUNDLE_ID" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Delete :CFBundleExecutable" "$APP_DIR/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleExecutable string $APP_NAME" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Delete :CFBundleShortVersionString" "$APP_DIR/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleShortVersionString string $VERSION" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Delete :CFBundleVersion" "$APP_DIR/Contents/Info.plist" 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :CFBundleVersion string $VERSION" "$APP_DIR/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Add :NSPrincipalClass string NSApplication" "$APP_DIR/Contents/Info.plist" 2>/dev/null || true
 
 # Copy icon if exists
 if [ -f "assets/AppIcon.icns" ]; then
@@ -133,7 +80,7 @@ echo -e "${GREEN}? App bundle created${NC}"
 # Step 4: Sign app
 echo -e "\n${YELLOW}??  Step 4: Signing app...${NC}"
 xattr -cr "$APP_DIR"
-codesign --force --deep --sign - "$APP_DIR"
+codesign --force --deep --entitlements "ParquetViewer.entitlements" --sign - "$APP_DIR"
 echo -e "${GREEN}? App signed${NC}"
 
 # Step 5: Create DMG

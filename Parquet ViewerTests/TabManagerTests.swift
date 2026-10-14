@@ -294,4 +294,22 @@ final class TabManagerTests: XCTestCase {
         
         XCTAssertEqual(sut.selectedTabID, sut.tabs[0].id)
     }
+
+    // MARK: - Standalone (tabs-disabled) manager
+
+    func testCurrentDBManagerFallsBackToStandaloneWhenNoTabs() async throws {
+        // The tabsEnabled=false path used to leave this nil forever —
+        // file-open silently did nothing
+        XCTAssertNil(sut.currentTab)
+        let mgr = sut.currentDBManager
+        XCTAssertNotNil(mgr)
+        XCTAssertTrue(mgr === sut.standaloneManager)
+    }
+
+    func testStandaloneManagerYieldsToRealTabs() async throws {
+        _ = sut.addEmptyTab()
+        XCTAssertNotNil(sut.currentDBManager)
+        XCTAssertFalse(sut.currentDBManager === sut.standaloneManager,
+                       "with a real tab selected its own manager must win")
+    }
 }

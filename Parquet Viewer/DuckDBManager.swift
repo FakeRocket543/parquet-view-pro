@@ -40,29 +40,39 @@ class DuckDBManager: ObservableObject {
     private var database: Database?
     private var connection: Connection?
     internal var currentFileURL: URL?  // Internal for CSV issue handling
-    /// Active search filter (nil = unfiltered). Kept as state so that sort,
-    /// jump and pagination all operate on the same filtered result set.
-    var activeFilterText: String?
-    var activeFilterColumn: String?
+    /// Active search filter (nil = unfiltered). Main-isolated: written by
+    /// filterData/resetFilter/clearData, snapshotted by loadParquet — all
+    /// on the main actor, so no lock is needed and no off-main read can
+    /// race a write.
+    @MainActor var activeFilterText: String?
+    @MainActor var activeFilterColumn: String?
     /// Sticky per-file "ignore integrity issues" decision (set via the CSV
     /// issue alert or quick preview) so pagination doesn't re-prompt
-    var integrityCheckSuppressed = false
+    @MainActor var integrityCheckSuppressed = false
     /// UTF-16 → UTF-8 transcode cache (source path → temp file), with the
-    /// source size+mtime the twin was built from
+    /// source size+mtime the twin was built from. Also holds glob-staged
+    /// symlinks and registered repair temps.
     private var transcodedFiles: [String: URL] = [:]
     private var cachedStamp: [String: String] = [:]
     private var maxDisplayRows: Int
 
-    /// Serializes access to the shared DuckDB Connection (it is not safe for
-    /// concurrent use) and backs the operation-generation superseding below.
+    /// Dedicated serial queue that owns the DuckDB Connection (it is not
+    /// safe for concurrent use). Queries hop onto it via continuation so a
+    /// long-running query suspends the calling task instead of blocking a
+    /// cooperative-pool thread — UI work is never starved and every other
+    /// operation's claim/reset path stays instant.
+    private let connQueue = DispatchQueue(label: "com.parquetview.pro.duckdb")
+    /// Serializes short-lived state claims (operation generation, row-count
+    /// cache, transcode registry). NEVER held across a query or an await.
     private let dbLock = NSLock()
     /// Bumped by every public data operation; queries returning after a newer
     /// operation started discard their results instead of publishing stale
     /// state (e.g. an older debounced search finishing last).
     private var operationGeneration: UInt64 = 0
-    /// True while a pagination page is loading (guarded by dbLock; NOT
-    /// published — the published isLoadingMore is only a UI mirror)
-    private var paginationInFlight = false
+    /// True while a pagination page is loading. Main-isolated: claim and
+    /// row/count snapshot happen in ONE main-actor section, so momentum
+    /// scroll can never double-fire a page.
+    @MainActor private var paginationInFlight = false
 
     // MARK: - Data Models
 
@@ -88,7 +98,12 @@ class DuckDBManager: ObservableObject {
     init() {
         // Honor the user's Settings ▸ max rows preference if set
         let stored = UserDefaults.standard.integer(forKey: "maxRows")
-        self.maxDisplayRows = stored > 0 ? stored : DataConstants.defaultMaxRows
+        // Clamp the raw preference: an out-of-range value (corrupted plist,
+        // `defaults write`) would otherwise make `maxDisplayRows * 10`
+        // overflow-trap or request unbounded LIMITs
+        self.maxDisplayRows = stored > 0
+            ? min(max(stored, DataConstants.minMaxRows), DataConstants.maxMaxRows)
+            : DataConstants.defaultMaxRows
         setupDatabase()
     }
     
@@ -105,7 +120,7 @@ class DuckDBManager: ObservableObject {
     // MARK: - Public Methods
     
     /// Clear all data and return to empty state
-    func clearData() {
+    @MainActor func clearData() {
         columns = []
         rows = []
         errorMessage = nil
@@ -123,13 +138,13 @@ class DuckDBManager: ObservableObject {
         // superseder is clearData itself, nobody else will clear these
         isLoading = false
         isLoadingMore = false
+        paginationInFlight = false
         pendingRowShift = nil
         sortColumn = nil
         sortAscending = true
         activeFilterText = nil
         activeFilterColumn = nil
         csvIssueResult = nil
-        isLoadingMore = false
         integrityCheckSuppressed = false
         removeTranscodedFiles()
         dbLock.lock()
@@ -151,29 +166,28 @@ class DuckDBManager: ObservableObject {
     /// Prepends rows and slides the window start back; the tail is trimmed
     /// by the same cap as downward pagination.
     func loadPreviousData() async {
-        guard let fileURL = currentFileURL else { return }
+        guard let fileURL = await MainActor.run(body: { () -> URL? in
+            // Claim the in-flight flag in the SAME main-actor section that
+            // reads the window snapshot — momentum scroll fires many
+            // triggers, and this property set is the claim
+            guard !self.paginationInFlight, self.currentStartRow > 0 else { return nil }
+            self.paginationInFlight = true
+            self.isLoadingMore = true
+            return self.currentFileURL
+        }) else { return }
 
-        // Claim the in-flight flag in the SAME critical section that reads
-        // the snapshot — momentum scrolling fires many triggers before a
-        // MainActor hop could set a published flag
-        dbLock.lock()
-        if paginationInFlight || currentStartRow <= 0 {
-            dbLock.unlock()
-            return
+        let (pageStart, limit) = await MainActor.run { () -> (Int, Int) in
+            let start = max(0, self.currentStartRow - self.maxDisplayRows)
+            return (start, self.currentStartRow - start)
         }
-        paginationInFlight = true
-        let pageStart = max(0, currentStartRow - maxDisplayRows)
-        let limit = currentStartRow - pageStart
-        dbLock.unlock()
         defer {
-            dbLock.lock()
-            paginationInFlight = false
-            dbLock.unlock()
+            Task { @MainActor in
+                self.paginationInFlight = false
+                self.isLoadingMore = false
+            }
         }
 
-        await MainActor.run { self.isLoadingMore = true }
         await loadParquet(url: fileURL, limit: limit, offset: pageStart, prependMode: true)
-        await MainActor.run { self.isLoadingMore = false }
     }
 
     /// Load a Parquet file with optional row limit and offset
@@ -210,45 +224,43 @@ class DuckDBManager: ObservableObject {
 
             // A different file loaded into this manager must not inherit the
             // previous file's filter/sort/integrity decisions (pagination in
-            // either direction keeps the same file)
-            dbLock.lock()
-            let isFileSwitch = !appendMode && !prependMode && url.path != currentFileURL?.path
-            if isFileSwitch {
-                activeFilterText = nil
-                activeFilterColumn = nil
-                integrityCheckSuppressed = false
-            }
-            let filterText = activeFilterText
-            let filterColumn = activeFilterColumn
-            dbLock.unlock()
-            if isFileSwitch {
-                // @Published sort state must be touched on the main actor
-                await MainActor.run {
+            // either direction keeps the same file). All of this state is
+            // main-isolated now: snapshot + reset in ONE section.
+            let snapshot = await MainActor.run { () -> (isFileSwitch: Bool, filterText: String?, filterColumn: String?, sortColumn: String?, sortAscending: Bool) in
+                let switching = !appendMode && !prependMode && url.path != self.currentFileURL?.path
+                if switching {
+                    self.activeFilterText = nil
+                    self.activeFilterColumn = nil
+                    self.integrityCheckSuppressed = false
                     self.sortColumn = nil
                     self.sortAscending = true
                 }
+                // The user's "ignore issues" decision sticks for the life of
+                // this file so pagination doesn't re-run the check and throw
+                // the alert back up mid-scroll
+                if skipIntegrityCheck { self.integrityCheckSuppressed = true }
+                return (switching, self.activeFilterText, self.activeFilterColumn,
+                        self.sortColumn, self.sortAscending)
             }
-            dbLock.lock()
-            let sortColState = sortColumn
-            let sortAscState = sortAscending
-            dbLock.unlock()
+            let filterText = snapshot.filterText
+            let filterColumn = snapshot.filterColumn
+            let sortColState = snapshot.sortColumn
+            let sortAscState = snapshot.sortAscending
 
             // DuckDB (1.1.3) garbles UTF-16 CSVs — transparently transcode to
-            // a cached UTF-8 temp file and query that instead
+            // a cached UTF-8 temp file and query that instead. Paths with
+            // glob metacharacters are staged through a symlink so the readers
+            // can't expand them.
             let queryURL = effectiveQueryURL(for: url, fileType: fileType)
             // SECURITY: Sanitize file path to prevent SQL injection (the
-            // query path is the UTF-8 twin for UTF-16 sources)
+            // query path is the UTF-8 twin / glob twin for special sources)
             guard let path = SecurityHelper.sanitizePath(queryURL.path) else {
                 throw SecurityError.sqlInjectionAttempt
             }
 
-            // Remember the user's "ignore issues" decision for this file so
-            // pagination (loadMoreData) doesn't re-run the check and throw
-            // the alert back up mid-scroll
-            if skipIntegrityCheck { integrityCheckSuppressed = true }
-
             // CSV integrity check (only for CSV/TSV files and when not explicitly skipped)
-            if fileType.isCSVFamily && !skipIntegrityCheck && !integrityCheckSuppressed {
+            let suppressed = await MainActor.run { self.integrityCheckSuppressed }
+            if fileType.isCSVFamily && !skipIntegrityCheck && !suppressed {
                 let checkResult = CSVIntegrityChecker.check(
                     url: url,
                     delimiter: fileType == .tsv ? "\t" : ","
@@ -272,7 +284,7 @@ class DuckDBManager: ObservableObject {
 
             // Get column names first
             let schemaQuery = "SELECT * FROM \(fromClause) LIMIT 1"
-            let schemaResult = try performQuery(schemaQuery)
+            let schemaResult = try await performQuery(schemaQuery)
             var columnNames: [String] = []
             for i in 0..<schemaResult.columnCount {
                 columnNames.append(schemaResult.columnName(at: i))
@@ -329,7 +341,7 @@ class DuckDBManager: ObservableObject {
             if let cached = cachedCount(countKey) {
                 totalRows = cached
             } else {
-                let countResult = try performQuery(countQuery)
+                let countResult = try await performQuery(countQuery)
                 try throwIfSuperseded(generation)
                 // FIXED: Use DuckDB 1.1.3 API
                 let countColumn = countResult.column(at: 0).cast(to: Int64.self)
@@ -338,7 +350,7 @@ class DuckDBManager: ObservableObject {
             }
 
             await MainActor.run { self.loadingProgress = 0.3; self.loadingMessage = "loading.range".localizedWithFormat(startOffset, startOffset + rowLimit) }
-            let dataResult = try performQuery(dataQuery)
+            let dataResult = try await performQuery(dataQuery)
             try throwIfSuperseded(generation)
             
             // Parse columns - FIXED: Use DuckDB 1.1.3 API
@@ -397,13 +409,20 @@ class DuckDBManager: ObservableObject {
             try throwIfSuperseded(generation)
 
             await MainActor.run {
-                // Re-check on the main actor: a generation bump between the
-                // superseded-check above and this publish (clearData, a newer
-                // op) must not resurrect stale state or double-append a page
-                guard self.isCurrent(generation) else { return }
+                // Re-check AND publish under the lock: a generation bump can
+                // only happen while holding dbLock, so no newer operation
+                // can interleave between the check and the writes below
+                self.dbLock.lock()
+                guard self.operationGeneration == generation else {
+                    self.dbLock.unlock()
+                    return
+                }
 
                 self.dataVersion += 1
-                self.pendingRowShift = nil  // default: semantic reset
+                // pendingRowShift semantics: nil = semantic reset (clear
+                // selection); n != 0 = index shift; 0 = keep selection in
+                // place (plain append — rows below don't move)
+                self.pendingRowShift = nil
                 self.columns = finalCols
                 // Publish the file as "current" only on success — after a
                 // failed reload the still-visible rows must keep describing
@@ -442,6 +461,10 @@ class DuckDBManager: ObservableObject {
                         self.rows.removeFirst(overflow)
                         self.currentStartRow += overflow
                         self.pendingRowShift = -overflow
+                    } else {
+                        // Plain append: indices below stay put — keep the
+                        // user's selection instead of a semantic reset
+                        self.pendingRowShift = 0
                     }
                     self.displayedRowCount = self.rows.count
                 } else {
@@ -456,19 +479,14 @@ class DuckDBManager: ObservableObject {
                 self.loadingProgress = 1.0
                 self.loadingMessage = "loading.complete".localized
                 self.isLoading = false
+                self.dbLock.unlock()
             }
 
         } catch is CancellationError {
             // Superseded by a newer operation — it owns the loading state now
         } catch {
             await MainActor.run {
-                // Truncate: DuckDB CSV errors can embed the entire offending
-                // line (potentially megabytes) in one message
-                var message = "Failed to load file: \(error.localizedDescription)"
-                if message.count > 500 {
-                    message = String(message.prefix(500)) + "…"
-                }
-                self.errorMessage = message
+                self.errorMessage = Self.truncated("Failed to load file: \(error.localizedDescription)")
                 self.isLoading = false
             }
         }
@@ -492,7 +510,7 @@ class DuckDBManager: ObservableObject {
     
     /// Export current data to specified format
     private func exportData(to url: URL, format: ExportFormat) async throws {
-        guard let fileURL = currentFileURL else {
+        guard let fileURL = await MainActor.run(body: { self.currentFileURL }) else {
             throw NSError(domain: "Export", code: -1,
                         userInfo: [NSLocalizedDescriptionKey: "No file loaded"])
         }
@@ -549,17 +567,18 @@ class DuckDBManager: ObservableObject {
             """
         }
 
-        try performExecute(exportQuery)
+        try await performExecute(exportQuery)
     }
     
     /// Jump to specific row
     func jumpToRow(_ rowNumber: Int, rowsToLoad: Int? = nil) async {
-        guard let fileURL = currentFileURL else { return }
+        guard let fileURL = await MainActor.run(body: { self.currentFileURL }) else { return }
 
         // Validate row number
-        guard rowNumber > 0 && rowNumber <= totalRowCount else {
+        let total = await MainActor.run { self.totalRowCount }
+        guard rowNumber > 0 && rowNumber <= total else {
             await MainActor.run {
-                self.errorMessage = "error.invalid_row".localizedWithFormat(totalRowCount)
+                self.errorMessage = "error.invalid_row".localizedWithFormat(total)
             }
             return
         }
@@ -577,57 +596,41 @@ class DuckDBManager: ObservableObject {
 
     /// Load more data (pagination)
     func loadMoreData() async {
-        guard let fileURL = currentFileURL else { return }
-
-        // Claim + snapshot in one critical section (see loadPreviousData)
-        dbLock.lock()
-        if paginationInFlight {
-            dbLock.unlock()
-            return
-        }
-        let startRow = currentStartRow
-        let loaded = rows.count
-        let total = totalRowCount
-        guard startRow + loaded < total else {
-            dbLock.unlock()
-            return
-        }
-        paginationInFlight = true
-        let newOffset = startRow + loaded
-        dbLock.unlock()
-        defer {
-            dbLock.lock()
-            paginationInFlight = false
-            dbLock.unlock()
-        }
-
-        await MainActor.run {
+        guard let (fileURL, newOffset, limit) = await MainActor.run(body: { () -> (URL, Int, Int)? in
+            guard !self.paginationInFlight, let url = self.currentFileURL else { return nil }
+            let startRow = self.currentStartRow
+            let loaded = self.rows.count
+            let total = self.totalRowCount
+            guard startRow + loaded < total else { return nil }
+            self.paginationInFlight = true
             self.isLoadingMore = true
+            return (url, startRow + loaded, self.maxDisplayRows)
+        }) else { return }
+        defer {
+            Task { @MainActor in
+                self.paginationInFlight = false
+                self.isLoadingMore = false
+            }
         }
 
-        await loadParquet(url: fileURL, limit: maxDisplayRows, offset: newOffset, appendMode: true)
-
-        await MainActor.run {
-            self.isLoadingMore = false
-        }
+        await loadParquet(url: fileURL, limit: limit, offset: newOffset, appendMode: true)
     }
     
     /// Check if there is more data to load.
     /// Compares the absolute end of the window (not just loaded count) so a
     /// jump to the final rows doesn't leave a permanently-true "load more"
     /// that fires empty queries on every scroll tick.
-    var hasMoreData: Bool {
+    @MainActor var hasMoreData: Bool {
         currentStartRow + rows.count < totalRowCount
     }
     
     /// Sort data by column
     func sortByColumn(_ columnName: String, ascending: Bool = true) async {
-        guard let fileURL = currentFileURL else { return }
-        guard columns.contains(columnName) else { return }
+        guard let fileURL = await MainActor.run(body: { self.currentFileURL }) else { return }
+        guard await MainActor.run(body: { self.columns.contains(columnName) }) else { return }
 
-        // @Published state must be written on the main actor (this method
-        // runs on the cooperative pool); sorting also restarts the view at
-        // the top — a sorted result set has no stable "current row"
+        // Sorting restarts the view at the top — a sorted result set has no
+        // stable "current row"
         await MainActor.run {
             self.sortColumn = columnName
             self.sortAscending = ascending
@@ -648,15 +651,17 @@ class DuckDBManager: ObservableObject {
             }
         }
 
-        guard let fileURL = currentFileURL else { return }
+        guard let fileURL = await MainActor.run(body: { self.currentFileURL }) else { return }
         // Sorted results restart at the top of the new order
         await loadParquet(url: fileURL, limit: maxDisplayRows, offset: 0)
     }
     
     /// Calculate statistics on demand (called when user clicks Statistics button)
     func loadColumnStats() async {
-        guard let fileURL = currentFileURL else { return }
-        guard !columns.isEmpty else { return }
+        guard let (fileURL, statColumns) = await MainActor.run(body: { () -> (URL, [String])? in
+            guard let url = self.currentFileURL, !self.columns.isEmpty else { return nil }
+            return (url, self.columns)
+        }) else { return }
 
         // SECURITY: Sanitize path (queries use the UTF-8 twin when needed)
         guard let fileType = FileType.from(url: fileURL) else { return }
@@ -671,7 +676,7 @@ class DuckDBManager: ObservableObject {
         }
 
         do {
-            let stats = try await calculateColumnStats(path: path, columns: columns, fileType: fileType, generation: generation)
+            let stats = try await calculateColumnStats(path: path, columns: statColumns, fileType: fileType, generation: generation)
             try throwIfSuperseded(generation)
             await MainActor.run {
                 self.columnStats = stats
@@ -683,7 +688,7 @@ class DuckDBManager: ObservableObject {
         } catch {
             await MainActor.run {
                 self.isLoading = false
-                self.errorMessage = "Failed to calculate statistics: \(error.localizedDescription)"
+                self.errorMessage = Self.truncated("Failed to calculate statistics: \(error.localizedDescription)")
             }
         }
     }
@@ -711,7 +716,7 @@ class DuckDBManager: ObservableObject {
             }
             let statsQuery = "SELECT \(expressions.joined(separator: ", ")) FROM \(fromClause)"
 
-            let result = try performQuery(statsQuery)
+            let result = try await performQuery(statsQuery)
             try throwIfSuperseded(generation)
             guard result.rowCount > 0 else { return [:] }
 
@@ -762,12 +767,12 @@ class DuckDBManager: ObservableObject {
                 """
 
             do {
-                let result = try performQuery(statsQuery)
+                let result = try await performQuery(statsQuery)
                 try throwIfSuperseded(generation)
                 if result.rowCount > 0 {
                     var avgValue: String? = nil
                     let avgQuery = "SELECT AVG(TRY_CAST(\(Self.quoteIdentifier(colName)) AS DOUBLE)) as avg_val FROM \(fromClause)"
-                    if let avgResult = try? performQuery(avgQuery),
+                    if let avgResult = try? await performQuery(avgQuery),
                        let avg = avgResult.column(at: 0).cast(to: Double.self)[0] {
                         avgValue = String(format: "%.4f", avg)
                     }
@@ -795,20 +800,17 @@ class DuckDBManager: ObservableObject {
     
     /// Clear the active filter WITHOUT reloading (used on error paths where
     /// a retry must not re-apply the filter that caused the failure)
-    func resetFilter() {
-        dbLock.lock()
+    @MainActor func resetFilter() {
         activeFilterText = nil
         activeFilterColumn = nil
-        dbLock.unlock()
     }
 
     /// Search/filter data. Stores the filter as state and reloads through the
     /// unified load path, so sorting / jumping / pagination all stay within
     /// the filtered result set instead of mixing in unfiltered rows.
-    func filterData(searchText: String, column: String? = nil) async {
+    @MainActor func filterData(searchText: String, column: String? = nil) async {
         guard let fileURL = currentFileURL else { return }
 
-        dbLock.lock()
         if searchText.isEmpty {
             activeFilterText = nil
             activeFilterColumn = nil
@@ -816,7 +818,6 @@ class DuckDBManager: ObservableObject {
             activeFilterText = searchText
             activeFilterColumn = column
         }
-        dbLock.unlock()
         await loadParquet(url: fileURL)
     }
 
@@ -871,13 +872,28 @@ class DuckDBManager: ObservableObject {
         return head == Data([0xFE, 0xFF]) || head == Data([0xFF, 0xFE])
     }
 
-    /// UTF-16 CSV files: DuckDB (1.1.3) reads them as NUL-laden garbage.
-    /// Transcode to UTF-8 once, cache per source path (validated against
-    /// size+mtime so an edited source invalidates its twin), and query the
-    /// twin. Cache access is serialized (this runs off the main actor).
+    /// Returns the URL DuckDB should actually read. Order matters:
+    /// 1. UTF-16 CSVs get a cached UTF-8 transcode twin (DuckDB 1.1.3 garbles them)
+    /// 2. Whatever URL survives step 1 gets glob-staged if its name carries
+    ///    * ? [ or a `key=val` parent — readers glob-expand the path and
+    ///    parse hive-partition segments (staging AFTER transcoding, not
+    ///    before, or a glob-named UTF-16 file would silently skip step 1)
+    /// All staging is cached per source path + size/mtime stamp and
+    /// registered for cleanup with the transcode twins.
     private func effectiveQueryURL(for url: URL, fileType: FileType) -> URL {
-        guard hasUTF16BOM(url: url, fileType: fileType) else { return url }
+        var candidate = url
+        if hasUTF16BOM(url: url, fileType: fileType) {
+            candidate = transcodeUTF16(url) ?? url
+        }
+        let name = candidate.lastPathComponent
+        let needsStaging = name.rangeOfCharacter(from: CharacterSet(charactersIn: "*?[")) != nil
+            || candidate.deletingLastPathComponent().lastPathComponent.contains("=")
+        if needsStaging, let staged = stageForQuery(candidate) { return staged }
+        return candidate
+    }
 
+    /// Transcode a UTF-16 file to a cached UTF-8 temp twin.
+    private func transcodeUTF16(_ url: URL) -> URL? {
         let stamp = fileStamp(url)
         dbLock.lock()
         if let cached = transcodedFiles[url.path], cachedStamp[url.path] == stamp {
@@ -890,7 +906,7 @@ class DuckDBManager: ObservableObject {
         guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
               let size = attrs[.size] as? UInt64, size <= 512 * 1024 * 1024,
               let data = try? Data(contentsOf: url),
-              let text = String(data: data, encoding: .utf16) else { return url }
+              let text = String(data: data, encoding: .utf16) else { return nil }
         let temp = FileManager.default.temporaryDirectory
             .appendingPathComponent("pv_utf8_\(UUID().uuidString)_\(url.lastPathComponent)")
         do {
@@ -907,7 +923,37 @@ class DuckDBManager: ObservableObject {
             dbLock.unlock()
             return temp
         } catch {
-            return url
+            return nil
+        }
+    }
+
+    /// Symlink a glob-unsafe path into the temp dir under a clean name.
+    /// Cached per source path + file stamp, same as UTF-16 twins.
+    private func stageForQuery(_ url: URL) -> URL? {
+        let stamp = fileStamp(url)
+        dbLock.lock()
+        if let cached = transcodedFiles[url.path], cachedStamp[url.path] == stamp {
+            dbLock.unlock()
+            return cached
+        }
+        dbLock.unlock()
+
+        let link = FileManager.default.temporaryDirectory
+            .appendingPathComponent("pv_link_\(UUID().uuidString).\(url.pathExtension)")
+        do {
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: url)
+            dbLock.lock()
+            if let existing = transcodedFiles[url.path] {
+                dbLock.unlock()
+                try? FileManager.default.removeItem(at: link)
+                return existing
+            }
+            transcodedFiles[url.path] = link
+            cachedStamp[url.path] = stamp
+            dbLock.unlock()
+            return link
+        } catch {
+            return nil
         }
     }
 
@@ -920,7 +966,12 @@ class DuckDBManager: ObservableObject {
 
     /// Register an owned-by-the-manager temp file (e.g. the "skip last row"
     /// repaired copy) so clearData/deinit removes it together with transcodes.
+    /// Guarded: only paths inside the temp dir may be registered — this is a
+    /// deletion list, so a stray caller must not turn it into an
+    /// arbitrary-file-delete primitive.
     func registerTempFile(_ url: URL) {
+        let tmp = FileManager.default.temporaryDirectory.standardizedFileURL.path
+        guard url.standardizedFileURL.path.hasPrefix(tmp) else { return }
         dbLock.lock()
         defer { dbLock.unlock() }
         transcodedFiles[url.path] = url
@@ -937,27 +988,34 @@ class DuckDBManager: ObservableObject {
         }
     }
 
-    /// Run a query on the shared connection while holding the serialization
-    /// lock, so overlapping UI actions can never use the Connection
-    /// concurrently.
-    private func performQuery(_ sql: String) throws -> ResultSet {
+    /// Run a query on the shared connection on its dedicated serial queue.
+    /// The continuation SUSPENDS the calling task — unlike the old lock-
+    /// held-across-query design, a 30-second scan no longer blocks a
+    /// cooperative-pool thread or stalls unrelated operations.
+    private func performQuery(_ sql: String) async throws -> ResultSet {
         guard let conn = connection else {
             throw NSError(domain: "DuckDB", code: -1,
                         userInfo: [NSLocalizedDescriptionKey: "No database connection"])
         }
-        dbLock.lock()
-        defer { dbLock.unlock() }
-        return try conn.query(sql)
+        return try await withCheckedThrowingContinuation { cont in
+            connQueue.async { cont.resume(with: Result { try conn.query(sql) }) }
+        }
     }
 
-    private func performExecute(_ sql: String) throws {
+    private func performExecute(_ sql: String) async throws {
         guard let conn = connection else {
             throw NSError(domain: "DuckDB", code: -1,
                         userInfo: [NSLocalizedDescriptionKey: "No database connection"])
         }
-        dbLock.lock()
-        defer { dbLock.unlock() }
-        try conn.execute(sql)
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            connQueue.async { cont.resume(with: Result { try conn.execute(sql) }) }
+        }
+    }
+
+    /// DuckDB CSV errors can embed the entire offending line (potentially
+    /// megabytes) in one message — every user-facing error write truncates.
+    static func truncated(_ message: String, limit: Int = 500) -> String {
+        message.count > limit ? String(message.prefix(limit)) + "…" : message
     }
 
     /// Build a WHERE clause for the active filter, or "" when unfiltered.

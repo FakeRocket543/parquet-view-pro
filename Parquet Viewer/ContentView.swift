@@ -6,6 +6,7 @@ import SwiftUI
 import Combine
 import UniformTypeIdentifiers
 
+@MainActor
 struct ContentView: View {
     @StateObject private var tabManager = TabManager()
     @State private var selectedFile: URL?
@@ -15,6 +16,9 @@ struct ContentView: View {
     @State private var jumpToRowNumber = ""
     @State private var jumpRowCount = "1000"
     @AppStorage("recentFiles") private var recentFilesData: Data = Data()
+    /// Security-scoped bookmarks keyed by file path so sandboxed builds can
+    /// re-open entries from the recents list without a fresh user grant
+    @AppStorage("recentFileBookmarks") private var recentBookmarksData: Data = Data()
     @AppStorage("tableFontSize") private var tableFontSize: Double = 13.0
     @FocusState private var isSearchFocused: Bool
     
@@ -31,6 +35,10 @@ struct ContentView: View {
 
     private var recentFiles: [URL] {
         (try? JSONDecoder().decode([URL].self, from: recentFilesData)) ?? []
+    }
+
+    private var recentBookmarks: [String: Data] {
+        (try? JSONDecoder().decode([String: Data].self, from: recentBookmarksData)) ?? [:]
     }
 
     var body: some View {
@@ -330,8 +338,10 @@ struct ContentView: View {
     
     private func loadFile(url: URL) {
         selectedFile = url
+        // Recents-list re-opens need the stored security scope before any
+        // read; no-op on files that already carry a grant (panel/drop/odoc)
+        startScopedAccess(for: url)
         addToRecentFiles(url)
-        
         // Handle tabs if Pro version
         if FeatureFlags.tabsEnabled {
             // Check if current tab is empty (Untitled)
@@ -434,12 +444,40 @@ struct ContentView: View {
         var recent = recentFiles
         recent.removeAll { $0 == url }
         recent.insert(url, at: 0)
-        if recent.count > 10 {
-            recent = Array(recent.prefix(10))
+        if recent.count > DataConstants.maxRecentFiles {
+            recent = Array(recent.prefix(DataConstants.maxRecentFiles))
         }
         if let data = try? JSONEncoder().encode(recent) {
             recentFilesData = data
         }
+
+        // Maintain matching security-scoped bookmarks (sandboxed builds):
+        // create one for new entries, prune entries that fell off the list
+        var bookmarks = recentBookmarks
+        if bookmarks[url.path] == nil,
+           let data = try? url.bookmarkData(options: .withSecurityScope,
+                                            includingResourceValuesForKeys: nil,
+                                            relativeTo: nil) {
+            bookmarks[url.path] = data
+        }
+        let keep = Set(recent.map { $0.path })
+        bookmarks = bookmarks.filter { keep.contains($0.key) }
+        if let data = try? JSONEncoder().encode(bookmarks) {
+            recentBookmarksData = data
+        }
+    }
+
+    /// Resolve the stored bookmark for a recents entry and start the
+    /// security scope. Stale/missing bookmarks fail soft — the open then
+    /// surfaces a normal "can't read file" error.
+    private func startScopedAccess(for url: URL) {
+        guard let bookmark = recentBookmarks[url.path] else { return }
+        var stale = false
+        guard let resolved = try? URL(resolvingBookmarkData: bookmark,
+                                      options: .withSecurityScope,
+                                      relativeTo: nil,
+                                      bookmarkDataIsStale: &stale) else { return }
+        _ = resolved.startAccessingSecurityScopedResource()
     }
     
     // MARK: - Notification Handlers (Combine)
@@ -605,7 +643,7 @@ struct ContentView: View {
             .sink { [weak tabManager] notification in
                 guard let tabManager = tabManager,
                       let index = notification.userInfo?["index"] as? Int,
-                      index < tabManager.tabs.count else { return }
+                      index >= 0 && index < tabManager.tabs.count else { return }
                 tabManager.selectTab(id: tabManager.tabs[index].id)
             }
             .store(in: &cancellables)

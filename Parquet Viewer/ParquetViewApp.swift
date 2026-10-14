@@ -223,16 +223,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        // Show confirmation dialog before quitting (Cmd+Q)
+        // Async sheet, not runModal: a modal run inside this delegate method
+        // blocks logout/restart/shutdown
         let alert = NSAlert()
         alert.messageText = "alert.quit.title".localizedWithFormat(FeatureFlags.appName)
         alert.informativeText = "alert.quit.message".localized
         alert.alertStyle = .warning
         alert.addButton(withTitle: "button.quit".localized)
         alert.addButton(withTitle: "alert.cancel".localized)
-        
-        let response = alert.runModal()
-        return response == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+
+        guard let window = sender.windows.first else {
+            // No window to host a sheet — modal fallback (rare path)
+            return alert.runModal() == .alertFirstButtonReturn ? .terminateNow : .terminateCancel
+        }
+        alert.beginSheetModal(for: window) { response in
+            sender.reply(toApplicationShouldTerminate: response == .alertFirstButtonReturn)
+        }
+        return .terminateLater
     }
     
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

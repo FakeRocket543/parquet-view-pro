@@ -175,3 +175,5 @@ Tip: Increase the tab limit in Settings or close some tabs.";
 "loading.complete" = "Complete!";
 "loading.stats" = "Calculating statistics...";
 "error.invalid_row" = "Invalid row number. Must be between 1 and %d";
+"csv.issue.truncated_tail" = "The last row of the file is truncated or incomplete";
+"csv.issue.unmatched_quotes_tail" = "A quoted field near the end of the file is never closed";

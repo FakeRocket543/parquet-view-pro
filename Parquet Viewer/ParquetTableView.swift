@@ -127,10 +127,8 @@ struct ParquetTableView: NSViewRepresentable {
 
         context.coordinator.dataTable = tableView
         context.coordinator.dataScrollView = scrollView
-        if let dataTable = tableView as? DataTable {
-            dataTable.onCopySelection = { [weak coordinator = context.coordinator] in
-                coordinator?.copySelection()
-            }
+        tableView.onCopySelection = { [weak coordinator = context.coordinator] in
+            coordinator?.copySelection()
         }
 
         // Infinite scroll: observe clip-view bounds changes and trigger
@@ -174,7 +172,6 @@ struct ParquetTableView: NSViewRepresentable {
         coordinator.onCopyRow = onCopyRow
         coordinator.onCopyColumn = onCopyColumn
         coordinator.onCopyColumnNames = onCopyColumnNames
-        coordinator.hasPreviousData = hasPreviousData
         coordinator.dataVersion = dataVersion
         coordinator.isLoadingMore = isLoadingMore
         coordinator.fontSize = tableFontSize
@@ -224,9 +221,9 @@ struct ParquetTableView: NSViewRepresentable {
             table?.layoutSubtreeIfNeeded()
 
             if let table {
-                if let shift, shift != 0 {
-                    // Pure index shift (prepend/trim): keep the selection AND
-                    // anchor the viewport to the logical row it was showing
+                if let shift {
+                    // Index shift (prepend/trim/append-keep): keep the
+                    // selection AND anchor the viewport to the logical row
                     let newSel = IndexSet(oldSelection.map { $0 + shift }
                         .filter { $0 >= 0 && $0 < coordinator.rows.count })
                     if newSel.isEmpty { table.deselectAll(nil) }
@@ -646,7 +643,7 @@ class DataTableHeaderView: NSTableHeaderView {
         if let directed = onSortColumnDirected {
             directed(col, false)
         } else {
-            onSortColumn?(col)
+            // toggle fallback: a single call flips asc→desc
             onSortColumn?(col)
         }
     }

@@ -56,4 +56,21 @@ final class LocalizationTests: XCTestCase {
                            "\(lang): csv.issue.mismatch must keep 3 format specifiers")
         }
     }
+
+    /// Every shipped .lproj must be reachable from the Settings picker —
+    /// the enum used to offer only 3 of the 15 translated tables
+    func testLanguagePickerCoversAllShippedLocales() throws {
+        let resourceDir = L10nBundle.module
+            .url(forResource: "en", withExtension: "lproj")?
+            .deletingLastPathComponent()
+        let shipped = try XCTUnwrap(resourceDir, "en.lproj must exist in the resource bundle").path
+        let codes = try FileManager.default.contentsOfDirectory(atPath: shipped)
+            .filter { $0.hasSuffix(".lproj") }
+            .map { String($0.dropLast(6)) }
+        let selectable = Set(Language.allCases.map { $0.appleLanguageCode })
+        for code in codes {
+            XCTAssertTrue(selectable.contains(code),
+                          "\(code).lproj ships but the language picker cannot select it")
+        }
+    }
 }

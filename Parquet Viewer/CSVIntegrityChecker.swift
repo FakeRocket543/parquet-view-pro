@@ -226,23 +226,43 @@ class CSVIntegrityChecker {
 
         // Build suggested actions based on issue type
         var actions: [CSVRepairAction] = []
+        var tailTruncated = false
+
+        if issueType == nil && hitCap {
+            // Head was clean but we only sampled the first 2 MB — also
+            // inspect the file's tail. Only the LAST record is judged:
+            // mid-file anomalies have no reliable line number, and DuckDB's
+            // ignore_errors tolerates them anyway.
+            switch tailLastRecordStatus(url: url, fileSize: fileSize,
+                                        delimiter: effectiveDelimiter,
+                                        headerColumns: headerColumns) {
+            case .truncated:
+                issueType = .truncatedLastRow
+                issueDescription = "csv.issue.truncated_tail".localized
+                actions = [.skipLastRow, .ignoreAndLoad, .openWithExternalTool]
+                tailTruncated = true
+            case .unmatchedQuotes:
+                issueType = .unmatchedQuotes
+                issueDescription = "csv.issue.unmatched_quotes_tail".localized
+                actions = [.ignoreAndLoad, .openWithExternalTool, .retryWithDifferentSettings]
+                tailTruncated = true
+            case .clean, .unreadable:
+                break
+            }
+        }
 
         if let issue = issueType {
             switch issue {
-            case .truncatedLastRow:
-                actions = [
-                    .skipLastRow,
-                    .ignoreAndLoad,
-                    .openWithExternalTool
-                ]
-            case .mismatchedColumns, .unmatchedQuotes:
-                actions = [
-                    .ignoreAndLoad,
-                    .openWithExternalTool,
-                    .retryWithDifferentSettings
-                ]
+            case .truncatedLastRow where !tailTruncated:
+                actions = [.skipLastRow, .ignoreAndLoad, .openWithExternalTool]
+            case .mismatchedColumns:
+                actions = [.ignoreAndLoad, .openWithExternalTool, .retryWithDifferentSettings]
+            case .unmatchedQuotes where !tailTruncated:
+                actions = [.ignoreAndLoad, .openWithExternalTool, .retryWithDifferentSettings]
             case .encodingError, .emptyFile:
                 actions = [.openWithExternalTool]
+            default:
+                break  // tail-detected issues already carry their actions
             }
         }
 
@@ -251,8 +271,44 @@ class CSVIntegrityChecker {
             issueType: issueType,
             issueDescription: issueDescription,
             suggestedActions: actions,
-            lastValidRowIndex: lastValidRowIndex + 1  // Convert to 1-based (including header)
+            lastValidRowIndex: tailTruncated ? -1 : lastValidRowIndex + 1  // -1 = drop final record (tail-detected); otherwise 1-based incl. header
         )
+    }
+
+    /// Outcome of inspecting only the final record of a large file.
+    private enum TailStatus { case clean, truncated, unmatchedQuotes, unreadable }
+
+    /// Read the file's tail chunk and judge ONLY its last record (column
+    /// count vs the header, or a dangling quote). The leading partial line
+    /// in the chunk is discarded.
+    private static func tailLastRecordStatus(url: URL, fileSize: UInt64,
+                                             delimiter: Character,
+                                             headerColumns: Int) -> TailStatus {
+        do {
+            let handle = try FileHandle(forReadingFrom: url)
+            defer { try? handle.close() }
+            let tailBytes = UInt64(maxCheckBytes)
+            try handle.seek(toOffset: fileSize > tailBytes ? fileSize - tailBytes : 0)
+            var tail = handle.readData(ofLength: maxCheckBytes)
+            guard !tail.isEmpty else { return .clean }
+            // Chunk boundary may split a multi-byte char — trim until UTF-8
+            var content = String(data: tail, encoding: .utf8)
+            while content == nil && !tail.isEmpty {
+                tail = tail.dropLast(1)
+                content = String(data: tail, encoding: .utf8)
+            }
+            guard let text = content else { return .unreadable }
+            var records = parseRecords(in: text)
+            if records.count > 1 { records.removeFirst() }  // partial first line
+            guard let last = records.last else { return .clean }
+            if hasUnmatchedQuotes(last) { return .unmatchedQuotes }
+            if countColumns(inRecord: last, delimiter: delimiter) != headerColumns {
+                return .truncated
+            }
+            return .clean
+        } catch {
+            return .unreadable
+        }
     }
 
     /// Split content into records. A record boundary is any newline outside
@@ -331,14 +387,22 @@ class CSVIntegrityChecker {
         return count + 1
     }
 
-    /// Get last valid row as a new string (for skipping truncated rows)
+    /// Get last valid row as a new string (for skipping truncated rows).
+    /// `upToRow` < 0 means "drop the final record" (tail-detected truncation
+    /// has no absolute index). Capped at 512 MB — larger sources fall back
+    /// to tolerant loading instead of an unbounded whole-file read.
     static func createTruncatedContent(from url: URL, upToRow rowIndex: Int) -> String? {
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+           let size = attrs[.size] as? UInt64, size > 512 * 1024 * 1024 {
+            return nil
+        }
         guard let content = try? String(contentsOf: url, encoding: .utf8) else {
             return nil
         }
 
         let records = parseRecords(in: content)
-        let endIndex = min(rowIndex, records.count)
+        let endIndex = rowIndex < 0 ? records.count - 1 : min(rowIndex, records.count)
+        guard endIndex > 0 else { return nil }
         return records[0..<endIndex].joined(separator: "\n")
     }
 }

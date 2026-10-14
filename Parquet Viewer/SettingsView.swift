@@ -195,10 +195,23 @@ enum Theme: String, CaseIterable, Identifiable {
     }
 }
 
+/// One case per shipped .lproj — LocalizationTests asserts full coverage.
 enum Language: String, CaseIterable, Identifiable {
     case english = "English"
     case simplifiedChinese = "简体中文"
     case chineseTraditional = "繁體中文"
+    case german = "Deutsch"
+    case french = "Français"
+    case spanish = "Español"
+    case italian = "Italiano"
+    case portugueseBrazil = "Português (Brasil)"
+    case japanese = "日本語"
+    case korean = "한국어"
+    case indonesian = "Bahasa Indonesia"
+    case malay = "Bahasa Melayu"
+    case arabic = "العربية"
+    case hindi = "हिन्दी"
+    case bengali = "বাংলা"
 
     var id: String { rawValue }
 
@@ -208,6 +221,18 @@ enum Language: String, CaseIterable, Identifiable {
         case .english: return "en"
         case .simplifiedChinese: return "zh-Hans"
         case .chineseTraditional: return "zh-Hant"
+        case .german: return "de"
+        case .french: return "fr"
+        case .spanish: return "es"
+        case .italian: return "it"
+        case .portugueseBrazil: return "pt-BR"
+        case .japanese: return "ja"
+        case .korean: return "ko"
+        case .indonesian: return "id"
+        case .malay: return "ms"
+        case .arabic: return "ar"
+        case .hindi: return "hi"
+        case .bengali: return "bn"
         }
     }
 }

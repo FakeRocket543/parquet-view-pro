@@ -135,9 +135,16 @@ enum SecurityHelper {
 
     /// Validate file path and check if it's safe to access
     static func validateFilePath(_ url: URL) -> Result<Void, SecurityError> {
-        // Check if file exists
-        guard FileManager.default.fileExists(atPath: url.path) else {
+        // Check if file exists and is a regular file — FileHandle/Data reads
+        // on directories, FIFOs or special files either silently "succeed"
+        // or block forever
+        guard let attrs = try? FileManager.default.attributesOfItem(atPath: url.path) else {
             return .failure(.fileNotFound(path: url.path))
+        }
+        guard (attrs[.type] as? FileAttributeType) == .typeRegular else {
+            return FileManager.default.fileExists(atPath: url.path)
+                ? .failure(.notRegularFile(path: url.path))
+                : .failure(.fileNotFound(path: url.path))
         }
 
         // Check if file is readable
@@ -184,6 +191,7 @@ enum SecurityError: LocalizedError {
     case fileNotReadable(path: String)
     case unsupportedFileType(extension: String)
     case pathTraversal
+    case notRegularFile(path: String)
     case accessDenied(path: String)
     case sqlInjectionAttempt
 
@@ -195,6 +203,8 @@ enum SecurityError: LocalizedError {
             return "Cannot read file: \(path)"
         case .unsupportedFileType(let ext):
             return "Unsupported file type: .\(ext)\nSupported types: \(FileType.supportedExtensions.joined(separator: ", "))"
+        case .notRegularFile(let path):
+            return "Not a regular file: \(path)"
         case .pathTraversal:
             return "Invalid file path: Path traversal detected"
         case .accessDenied(let path):
@@ -212,6 +222,8 @@ enum SecurityError: LocalizedError {
             return "Please check file permissions and try again."
         case .unsupportedFileType:
             return "Please select a supported file (Parquet, CSV, TSV, JSON, JSONL)."
+        case .notRegularFile:
+            return "Please select a regular file (not a directory or device)."
         case .pathTraversal:
             return "Please select a valid file path."
         case .accessDenied:

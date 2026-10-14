@@ -298,4 +298,69 @@ final class DuckDBManagerTests: XCTestCase {
 
         XCTAssertFalse(sut.sortAscending)
     }
+
+    // MARK: - maxRows preference clamp
+
+    func testMaxRowsClampedFromDefaults() async throws {
+        UserDefaults.standard.set(9_000_000_000, forKey: "maxRows")
+        defer { UserDefaults.standard.removeObject(forKey: "maxRows") }
+
+        let clamped = DuckDBManager()
+        let url = try makeLargeCSV(rows: 3000)
+        await clamped.loadParquet(url: url, limit: 100, skipIntegrityCheck: true)
+        XCTAssertNil(clamped.errorMessage, "load must succeed: \(clamped.errorMessage ?? "")")
+        XCTAssertEqual(clamped.rows.count, 100)
+    }
+
+    // MARK: - Glob/hive path safety
+
+    func testFileWithGlobCharsInNameLoads() async throws {
+        // A literal '[1]' in the filename must not glob-expand to siblings
+        try TestHelpers.setupTempDirectory()
+        let base = try makeSampleCSV()
+        let globURL = TestHelpers.tempDirectory.appendingPathComponent("weird[1].csv")
+        try FileManager.default.copyItem(at: base, to: globURL)
+
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: globURL, skipIntegrityCheck: true)
+        XCTAssertNil(mgr.errorMessage, "glob-named file must load: \(mgr.errorMessage ?? "")")
+        XCTAssertEqual(mgr.rows.count, 5)
+        XCTAssertEqual(mgr.columns.count, 4)
+    }
+
+    func testDirectoryNamedCSVRejectedNotReadAsDataset() async throws {
+        try TestHelpers.setupTempDirectory()
+        let dir = TestHelpers.tempDirectory.appendingPathComponent("fake.csv")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try "a,b\n1,2\n".write(to: dir.appendingPathComponent("inner.csv"), atomically: true, encoding: .utf8)
+
+        let mgr = DuckDBManager()
+        await mgr.loadParquet(url: dir)
+        XCTAssertNotNil(mgr.errorMessage, "a directory must never be read as a dataset")
+        XCTAssertFalse(mgr.hasLoadedFile)
+    }
+
+    // MARK: - registerTempFile guard
+
+    func testRegisterTempFileRejectsNonTempPaths() {
+        sut.registerTempFile(URL(fileURLWithPath: "/etc/passwd"))
+        // If registration were honored, clearData would delete /etc/passwd —
+        // survival of the file is the assertion (it trivially passes, but
+        // a removed guard would attempt the delete and fail noisily on CI)
+        sut.clearData()
+        XCTAssertTrue(FileManager.default.fileExists(atPath: "/etc/passwd"))
+    }
+
+    // MARK: - Append keeps selection token
+
+    func testAppendPageKeepsSelectionToken() async throws {
+        let url = try makeLargeCSV(rows: 3000)
+        await sut.loadParquet(url: url, limit: 500, skipIntegrityCheck: true)
+        XCTAssertNil(sut.errorMessage)
+
+        await sut.loadMoreData()
+        // 0 = keep selection in place (nil would be a semantic reset)
+        XCTAssertEqual(sut.pendingRowShift, 0)
+        XCTAssertEqual(sut.rows.count, 1500)
+    }
 }

@@ -5,6 +5,7 @@
 import SwiftUI
 import AppKit
 
+@MainActor
 struct DetailView: View {
     @ObservedObject var dbManager: DuckDBManager
     @Binding var selectedFile: URL?
@@ -253,6 +254,9 @@ struct DetailView: View {
                 await manager.loadParquet(url: fileURL, skipIntegrityCheck: true)
             }
         case .openWithExternalTool:
+            // Dismiss the alert first — this action doesn't reload, so the
+            // result would otherwise stay pinned to the screen
+            dbManager.csvIssueResult = nil
             NSWorkspace.shared.open(fileURL)
         case .retryWithDifferentSettings:
             // Distinct from "ignore and load": re-run the integrity check

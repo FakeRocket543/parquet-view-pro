@@ -400,11 +400,12 @@ final class E2ERealFileTests: XCTestCase {
         await mgr.loadMoreData()
         // Second page covers the rest; if a further page comes back empty
         // the count must converge instead of looping forever
-        let before = mgr.hasMoreData
+        let before = await MainActor.run { mgr.hasMoreData }
         if before {
             await mgr.loadMoreData()
         }
-        XCTAssertFalse(mgr.hasMoreData, "pagination must terminate at end of data")
+        let after = await MainActor.run { mgr.hasMoreData }
+        XCTAssertFalse(after, "pagination must terminate at end of data")
     }
 
     func testJumpToLastRowsHasNoMoreData() async throws {
@@ -416,7 +417,8 @@ final class E2ERealFileTests: XCTestCase {
         // Jump to the final row: window already ends at totalRowCount
         await mgr.jumpToRow(1500)
         XCTAssertNil(mgr.errorMessage)
-        XCTAssertFalse(mgr.hasMoreData, "no dead load-more affordance at EOF")
+        let noMore = await MainActor.run { mgr.hasMoreData }
+        XCTAssertFalse(noMore, "no dead load-more affordance at EOF")
     }
 
     // MARK: - Regression-verify pins (round 2)
@@ -467,7 +469,8 @@ final class E2ERealFileTests: XCTestCase {
 
         // Different file into the same manager: no inherited filter/sort
         await mgr.loadParquet(url: b, skipIntegrityCheck: true)
-        XCTAssertNil(mgr.activeFilterText, "filter must not leak into the next file")
+        let leaked = await MainActor.run { mgr.activeFilterText }
+        XCTAssertNil(leaked, "filter must not leak into the next file")
         XCTAssertNil(mgr.sortColumn, "sort must not leak into the next file")
         XCTAssertEqual(mgr.totalRowCount, 3, "count must reflect the unfiltered new file")
         XCTAssertEqual(mgr.rows.count, 3)
@@ -641,9 +644,10 @@ final class E2ERealFileTests: XCTestCase {
         await mgr.filterData(searchText: "beta")
         XCTAssertEqual(mgr.totalRowCount, 1)
 
-        mgr.resetFilter()
-        XCTAssertNil(mgr.activeFilterText)
-        XCTAssertNil(mgr.activeFilterColumn)
+        await mgr.resetFilter()
+        let cleared = await MainActor.run { (mgr.activeFilterText, mgr.activeFilterColumn) }
+        XCTAssertNil(cleared.0)
+        XCTAssertNil(cleared.1)
 
         // A subsequent load of the same file must be unfiltered
         await mgr.loadParquet(url: url, skipIntegrityCheck: true)

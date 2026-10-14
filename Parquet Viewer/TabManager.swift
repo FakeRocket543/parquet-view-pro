@@ -57,8 +57,14 @@ class TabManager: ObservableObject {
         return tabs.first { $0.id == selectedTabID }
     }
     
+    /// Fallback manager used when tabs are disabled (or no tab exists yet).
+    /// Lazy: tabs-on sessions never pay for a second DuckDB connection.
+    /// Without this, `tabsEnabled=false` left `currentDBManager` permanently
+    /// nil and file-open silently did nothing.
+    lazy var standaloneManager = DuckDBManager()
+
     var currentDBManager: DuckDBManager? {
-        currentTab?.dbManager
+        currentTab?.dbManager ?? standaloneManager
     }
     
     var canAddTab: Bool {

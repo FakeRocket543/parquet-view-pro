@@ -105,6 +105,7 @@ xattr -cr "${APP_BUNDLE}"
 
 codesign --force --deep --timestamp \
   --options runtime \
+  --entitlements "ParquetViewer.entitlements" \
   --sign "${DEVELOPER_ID}" \
   "${APP_BUNDLE}"
 

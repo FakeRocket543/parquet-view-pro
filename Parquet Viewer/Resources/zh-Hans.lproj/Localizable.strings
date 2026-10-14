@@ -152,3 +152,5 @@
 "loading.complete" = "完成！";
 "loading.stats" = "正在计算统计信息...";
 "error.invalid_row" = "行号无效。必须在 1 到 %d 之间";
+"csv.issue.truncated_tail" = "文件最后一行被截断或不完整";
+"csv.issue.unmatched_quotes_tail" = "文件末尾附近的引号字段未闭合";

@@ -373,3 +373,45 @@ Settings **⌘,** 指令 + Esc/Return 快捷；⌘F 守衛改 `hasLoadedFile`（
 - 法文 i18n 全 UI 生效（Fichier actuel / Fichiers récents / Rechercher...）
 - 單視窗多分頁正常（測試檔與使用者真實工作檔案並存）；檔案資訊（13 欄/1 列/2 KB）正確；深色模式正常
 - 截圖存 /tmp/pv_gui/（含私人檔名，不入 git）
+
+---
+
+# Round 7 — External Deep Review Fix Round (2026-10-14)
+
+**方法**: 主 agent 全檔案重讀 + security-reviewer subagent（含 vendored DuckDB 1.1.3 parser 驗證）→ findings 筆記（docs/round-7-findings.md）→ 自修 → 回歸 → 自審 diff（修正 1 個自造 bug：UTF-16+glob 檔案 staging 順序錯誤）→ MD 報告。
+
+**驗證**: 118 → **129 tests 全綠**；build 警告 34 → **0**；失敗測試 `testDirectoryNamedCSVRejectedNotReadAsDataset` 在首輪發現 regular-file check 未落地，補上後轉綠。
+
+## 修復清單
+
+### Critical
+- **tabsEnabled=false 死路**：`DuckDBManager` 只在 `FileTab` 內建立 → 關閉分頁功能後 `loadFile` 永遠 no-op。`TabManager.standaloneManager`（lazy）+ `currentDBManager` fallback（TabManager.swift:60-68；測試 `testCurrentDBManagerFallsBackToStandaloneWhenNoTabs`）。
+
+### High
+- **App Sandbox**：新增 `ParquetViewer.entitlements`（app-sandbox + user-selected.read-write + bookmarks.app-scope）；兩支 build script 接 `--entitlements`；`build_pro.sh` 內嵌過期 plist 改為複製 repo `Info.plist` + PlistBuddy 修補。recents 改用 security-scoped bookmarks（ContentView.swift）。
+
+### Medium
+- **Glob/hive 注入**：`effectiveQueryURL` 對 `*?[` 檔名或 `key=val` 父目錄走 `$TMPDIR` symlink staging（DuckDBManager.swift:887-897, stageForQuery）；UTF-16 transcode 先於 staging（自審抓回的順序 bug）。測試 `testFileWithGlobCharsInNameLoads`。
+- **非正規檔案**：`validateFilePath` 要求 `.typeRegular` — 目錄當 dataset 讀、FIFO 無限阻塞全部杜絕（AppConstants.swift:138-148；`testDirectoryNamedCSVRejectedNotReadAsDataset`）。
+- **maxRows clamp**：UserDefaults 值夾到 min…max，溢出 trap 消失（DuckDBManager.swift:100-106；`testMaxRowsClampedFromDefaults`）。
+- **CSV tail 採樣**：>2MB 檔案補讀檔尾、僅判定最後一筆記錄（無絕對行號 → lastValidRowIndex=-1 代表「丟棄末行」）；`createTruncatedContent` 512MB 上限（CSVIntegrityChecker.swift:231-274, tailLastRecordStatus）。新增 l10n keys `csv.issue.truncated_tail` / `unmatched_quotes_tail`（en/zh-Hans/zh-Hant 三表，其餘 12 locale 依政策 fallback en）。
+- **同步重構**：`connQueue` serial DispatchQueue + continuation 取代跨查詢 NSLock（不再阻塞 cooperative pool；filter/排序等操作即時開始而非等查詢完）；`activeFilter*`/`integrityCheckSuppressed`/`paginationInFlight`/`hasMoreData`/`clearData`/`filterData`/`resetFilter` 改 `@MainActor`；publish 檢查+寫入在同一臨界區（loadParquet:411+）；34 個 async-lock 警告歸零。
+- **append 保留選取**：`pendingRowShift = 0`（DuckDBManager.swift:460-463）+ table 接受 0 shift（ParquetTableView.swift:224-228）；`testAppendPageKeepsSelectionToken`。
+- **語言選單 3→15**：Language enum 補齊全部 shipped locales（SettingsView.swift:198-238）；`testLanguagePickerCoversAllShippedLocales` 以 bundle 內 .lproj 實盤比對。
+
+### Low
+- `openWithExternalTool` 關閉 alert（DetailView.swift:256-260）
+- 離開確認改非同步 sheet + `terminateLater`（ParquetViewApp.swift:225-243）
+- `sortDescendingAction` fallback 重複呼叫移除（ParquetTableView.swift:645-648）
+- `selectTab` 負 index 防護（ContentView.swift:646）
+- `DataConstants.maxRecentFiles` 實際使用；`registerTempFile` 限定 tmpdir（防任意刪除原語）；stats errorMessage 套用 500 字元截斷（Self.truncated）
+- 重複 `hasPreviousData` 指派、clearData 重複行清除
+
+## 新增測試（+11）
+standaloneManager×2、glob 檔名、目錄拒絕、maxRows clamp、tail-truncated×2、drop-final-record、tempFile guard、append shift token、locale 覆蓋。
+
+## 遺留（未動）
+- AX menu-item flood（v1.3.0 既有，待查）
+- DuckDB 1.1.3 升級（1.4.x 原生 UTF-16 + parser 修補）
+- `selectTab` userInfo index 來源仍僅限 app 內部 menu
+- 12 個 locale 對新鍵 fallback en（既定政策）

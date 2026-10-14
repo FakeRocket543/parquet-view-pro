@@ -92,6 +92,48 @@ final class CSVIntegrityCheckerTests: XCTestCase {
         XCTAssertEqual(records.last, "3,4")
     }
 
+    // MARK: - Tail sampling (files over the 2 MB head cap)
+
+    func testTailTruncatedRowDetectedBeyondHeadCap() throws {
+        // >2MB of valid rows, then a short final line — the head-only check
+        // used to report this perfectly valid
+        var content = "a,b,c\n"
+        var i = 0
+        while content.utf8.count < CSVIntegrityChecker.maxCheckBytes + 100 {
+            i += 1
+            content += "value\(i),other\(i),third\(i)\n"
+        }
+        content += "short,row\n"  // 2 cols vs header's 3
+        let url = try writeTempCSV("tail_trunc.csv", content)
+
+        let result = CSVIntegrityChecker.check(url: url)
+        XCTAssertFalse(result.isValid)
+        XCTAssertEqual(result.issueType, .truncatedLastRow)
+        XCTAssertEqual(result.lastValidRowIndex, -1, "tail detection signals drop-final-record")
+        XCTAssertTrue(result.suggestedActions.contains(.skipLastRow))
+    }
+
+    func testCleanTailBeyondCapStaysValid() throws {
+        var content = "a,b,c\n"
+        var i = 0
+        while content.utf8.count < CSVIntegrityChecker.maxCheckBytes + 100 {
+            i += 1
+            content += "value\(i),other\(i),third\(i)\n"
+        }
+        let url = try writeTempCSV("tail_clean.csv", content)
+        XCTAssertTrue(CSVIntegrityChecker.check(url: url).isValid)
+    }
+
+    // MARK: - createTruncatedContent drop-final-record sentinel
+
+    func testCreateTruncatedContentDropsFinalRecordOnNegativeIndex() throws {
+        let url = try writeTempCSV("drop_last.csv", "a,b\n1,2\n3,4\n5\n")
+        let out = CSVIntegrityChecker.createTruncatedContent(from: url, upToRow: -1)
+        XCTAssertNotNil(out)
+        XCTAssertFalse(out!.contains("5\n"), "final record must be dropped: \(out!)")
+        XCTAssertTrue(out!.contains("3,4"))
+    }
+
     // MARK: - Helper
 
     private func writeTempCSV(_ name: String, _ content: String) throws -> URL {
