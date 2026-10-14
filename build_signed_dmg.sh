@@ -89,6 +89,12 @@ if [ -d "${BUILD_DIR}/ParquetViewerSwift_ParquetViewLib.bundle" ]; then
 else
     echo -e "${RED}WARNING: SPM resource bundle missing — localization will fall back to raw keys${NC}" >&2
 fi
+# App icon (matches CFBundleIconFile=AppIcon in Info.plist)
+if [ -f "assets/AppIcon.icns" ]; then
+    cp "assets/AppIcon.icns" "${APP_BUNDLE}/Contents/Resources/"
+else
+    echo -e "${RED}WARNING: assets/AppIcon.icns missing -- app will have no icon" >&2
+fi
 printf 'APPL????' > "${APP_BUNDLE}/Contents/PkgInfo"
 
 ok ".app bundle 建立完成"
