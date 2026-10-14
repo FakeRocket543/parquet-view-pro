@@ -37,7 +37,7 @@ set -e
 
 APP_NAME="Parquet View Pro"
 BUNDLE_ID="com.parquetview.pro"
-VERSION="1.4.1"
+VERSION="1.4.2"
 BUILD_DIR=".build/arm64-apple-macosx/release"
 BINARY="Parquet-View"
 APP_BUNDLE="${APP_NAME}.app"
