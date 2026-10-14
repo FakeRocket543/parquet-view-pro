@@ -150,3 +150,8 @@
 "loading.complete" = "完了！";
 "loading.stats" = "統計を計算中...";
 "error.invalid_row" = "行番号が無効です。1〜%d の範囲で指定してください";
+
+"csv.issue.truncated_tail" = "ファイルの最終行が切り捨てられているか不完全です";
+"csv.issue.unmatched_quotes_tail" = "ファイル末尾付近の引用符フィールドが閉じられていません";
+"table.sort_ascending" = "昇順で並べ替え：%@";
+"table.sort_descending" = "降順で並べ替え：%@";

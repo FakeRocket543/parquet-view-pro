@@ -150,3 +150,8 @@
 "loading.complete" = "সম্পন্ন!";
 "loading.stats" = "পরিসংখ্যান গণনা হচ্ছে...";
 "error.invalid_row" = "অবৈধ সারি নম্বর। অবশ্যই 1 থেকে %d এর মধ্যে হতে হবে";
+
+"csv.issue.truncated_tail" = "ফাইলের শেষ সারিটি কাটা বা অসম্পূর্ণ";
+"csv.issue.unmatched_quotes_tail" = "ফাইলের শেষের কাছে একটি উদ্ধৃত ক্ষেত্র কখনও বন্ধ হয় না";
+"table.sort_ascending" = "আরোহী ক্রমে সাজান: %@";
+"table.sort_descending" = "অবরোহী ক্রমে সাজান: %@";

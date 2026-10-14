@@ -150,3 +150,8 @@
 "loading.complete" = "تم!";
 "loading.stats" = "جارٍ حساب الإحصاءات...";
 "error.invalid_row" = "رقم الصف غير صالح. يجب أن يكون بين 1 و %d";
+
+"csv.issue.truncated_tail" = "السطر الأخير من الملف مقطوع أو غير مكتمل";
+"csv.issue.unmatched_quotes_tail" = "حقل مقتبس قرب نهاية الملف لا يُغلق أبداً";
+"table.sort_ascending" = "فرز تصاعدياً: %@";
+"table.sort_descending" = "فرز تنازلياً: %@";

@@ -150,3 +150,8 @@ Astuce : augmentez la limite d'onglets dans les Réglages ou fermez des onglets.
 "loading.complete" = "Terminé !";
 "loading.stats" = "Calcul des statistiques...";
 "error.invalid_row" = "Numéro de ligne invalide. Il doit être compris entre 1 et %d";
+
+"csv.issue.truncated_tail" = "La dernière ligne du fichier est tronquée ou incomplète";
+"csv.issue.unmatched_quotes_tail" = "Un champ entre guillemets près de la fin du fichier n’est jamais fermé";
+"table.sort_ascending" = "Tri croissant : %@";
+"table.sort_descending" = "Tri décroissant : %@";

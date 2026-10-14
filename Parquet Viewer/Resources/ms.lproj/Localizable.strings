@@ -150,3 +150,8 @@ Tip: Tingkatkan had tab dalam Tetapan atau tutup beberapa tab.";
 "loading.complete" = "Selesai!";
 "loading.stats" = "Mengira statistik...";
 "error.invalid_row" = "Nombor baris tidak sah. Mesti antara 1 dan %d";
+
+"csv.issue.truncated_tail" = "Baris terakhir fail terpangkas atau tidak lengkap";
+"csv.issue.unmatched_quotes_tail" = "Medan bertanda petik berhampiran hujung fail tidak pernah ditutup";
+"table.sort_ascending" = "Susun menaik: %@";
+"table.sort_descending" = "Susun menurun: %@";

@@ -150,3 +150,8 @@
 "loading.complete" = "पूर्ण!";
 "loading.stats" = "आंकड़े गिने जा रहे हैं...";
 "error.invalid_row" = "अवैध पंक्ति संख्या। 1 से %d के बीच होनी चाहिए";
+
+"csv.issue.truncated_tail" = "फ़ाइल की अंतिम पंक्ति कटी हुई या अधूरी है";
+"csv.issue.unmatched_quotes_tail" = "फ़ाइल के अंत के पास एक उद्धृत फ़ील्ड कभी बंद नहीं होता";
+"table.sort_ascending" = "आरोही क्रम में क्रमबद्ध करें: %@";
+"table.sort_descending" = "अवरोही क्रम में क्रमबद्ध करें: %@";

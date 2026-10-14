@@ -14,13 +14,16 @@ final class LocalizationTests: XCTestCase {
         return Set(dict.keys)
     }
 
-    func testCompleteLocalesHaveIdenticalKeySets() throws {
+    /// Full key-set parity across every shipped locale — drift in any
+    /// table is a real "raw key shown to user" bug, so all 15 are pinned.
+    func testAllShippedLocalesHaveIdenticalKeySets() throws {
         let en = try keys(in: "en")
-        let hans = try keys(in: "zh-Hans")
-        let hant = try keys(in: "zh-Hant")
         XCTAssertFalse(en.isEmpty)
-        XCTAssertEqual(en, hans, "zh-Hans key set drifted from en: +\\(hans.subtracting(en)) -\\(en.subtracting(hans))")
-        XCTAssertEqual(en, hant, "zh-Hant key set drifted from en: +\\(hant.subtracting(en)) -\\(en.subtracting(hant))")
+        for lang in ["ar","bn","de","es","fr","hi","id","it","ja","ko","ms","pt-BR","zh-Hans","zh-Hant"] {
+            let keys = try keys(in: lang)
+            XCTAssertEqual(en, keys,
+                "\(lang) key set drifted from en: +\\(keys.subtracting(en)) -\\(en.subtracting(keys))")
+        }
     }
 
     func testLookupResolvesKnownKeyInDefaultState() {

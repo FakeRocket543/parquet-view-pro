@@ -150,3 +150,8 @@ Suggerimento: aumenta il limite di schede nelle Impostazioni o chiudi alcune sch
 "loading.complete" = "Completato!";
 "loading.stats" = "Calcolo statistiche...";
 "error.invalid_row" = "Numero di riga non valido. Deve essere compreso tra 1 e %d";
+
+"csv.issue.truncated_tail" = "L’ultima riga del file è troncata o incompleta";
+"csv.issue.unmatched_quotes_tail" = "Un campo tra virgolette verso la fine del file non viene mai chiuso";
+"table.sort_ascending" = "Ordine crescente: %@";
+"table.sort_descending" = "Ordine decrescente: %@";

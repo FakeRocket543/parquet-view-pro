@@ -150,3 +150,8 @@ Tips: Tingkatkan batas tab di Pengaturan atau tutup beberapa tab.";
 "loading.complete" = "Selesai!";
 "loading.stats" = "Menghitung statistik...";
 "error.invalid_row" = "Nomor baris tidak valid. Harus antara 1 dan %d";
+
+"csv.issue.truncated_tail" = "Baris terakhir file terpotong atau tidak lengkap";
+"csv.issue.unmatched_quotes_tail" = "Kolom bertanda kutip di dekat akhir file tidak pernah ditutup";
+"table.sort_ascending" = "Urutkan naik: %@";
+"table.sort_descending" = "Urutkan turun: %@";

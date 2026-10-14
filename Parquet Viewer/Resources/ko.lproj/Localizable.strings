@@ -150,3 +150,8 @@
 "loading.complete" = "완료!";
 "loading.stats" = "통계 계산 중...";
 "error.invalid_row" = "잘못된 행 번호입니다. 1에서 %d 사이여야 합니다";
+
+"csv.issue.truncated_tail" = "파일의 마지막 행이 잘리거나 불완전합니다";
+"csv.issue.unmatched_quotes_tail" = "파일 끝 근처의 인용 필드가 닫히지 않았습니다";
+"table.sort_ascending" = "오름차순 정렬: %@";
+"table.sort_descending" = "내림차순 정렬: %@";

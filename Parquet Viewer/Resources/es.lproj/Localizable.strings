@@ -150,3 +150,8 @@ Sugerencia: aumente el límite de pestañas en Ajustes o cierre algunas pestaña
 "loading.complete" = "¡Completado!";
 "loading.stats" = "Calculando estadísticas...";
 "error.invalid_row" = "Número de fila no válido. Debe estar entre 1 y %d";
+
+"csv.issue.truncated_tail" = "La última fila del archivo está truncada o incompleta";
+"csv.issue.unmatched_quotes_tail" = "Un campo entre comillas cerca del final del archivo nunca se cierra";
+"table.sort_ascending" = "Orden ascendente: %@";
+"table.sort_descending" = "Orden descendente: %@";

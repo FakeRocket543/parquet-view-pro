@@ -150,3 +150,8 @@ Dica: aumente o limite de abas nas Configurações ou feche algumas abas.";
 "loading.complete" = "Concluído!";
 "loading.stats" = "Calculando estatísticas...";
 "error.invalid_row" = "Número de linha inválido. Deve estar entre 1 e %d";
+
+"csv.issue.truncated_tail" = "A última linha do arquivo está truncada ou incompleta";
+"csv.issue.unmatched_quotes_tail" = "Um campo entre aspas perto do fim do arquivo nunca é fechado";
+"table.sort_ascending" = "Ordem crescente: %@";
+"table.sort_descending" = "Ordem decrescente: %@";

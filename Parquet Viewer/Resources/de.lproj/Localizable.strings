@@ -150,3 +150,8 @@ Tipp: Erhöhen Sie das Tab-Limit in den Einstellungen oder schließen Sie einige
 "loading.complete" = "Fertig!";
 "loading.stats" = "Statistiken werden berechnet ...";
 "error.invalid_row" = "Ungültige Zeilennummer. Muss zwischen 1 und %d liegen";
+
+"csv.issue.truncated_tail" = "Die letzte Zeile der Datei ist abgeschnitten oder unvollständig";
+"csv.issue.unmatched_quotes_tail" = "Ein Anführungszeichen-Feld nahe dem Dateiende wird nicht geschlossen";
+"table.sort_ascending" = "Aufsteigend sortieren: %@";
+"table.sort_descending" = "Absteigend sortieren: %@";

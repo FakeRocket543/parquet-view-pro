@@ -31,7 +31,9 @@ found by an independent audit (code + vendored-DuckDB internals).
   unbounded whole-file read.
 - **Selection survives scrolling** — loading the next page no longer
   wipes the rows you selected.
-- **Language picker** — all 15 bundled locales are selectable (was 3).
+- **Language picker** — all 15 bundled locales are selectable (was 3),
+  and all 15 tables are now at full key parity (no more English
+  fallback for sort-menu and tail-issue strings).
 - **Quit confirmation** — no longer a modal dialog that could block
   system logout/restart/shutdown; it is now a sheet on the window.
 - **CSV issue dialog** — "Open with external tool" now dismisses the
@@ -45,8 +47,9 @@ found by an independent audit (code + vendored-DuckDB internals).
 
 - Accessibility tree flooded by menu items on some systems (pre-existing
   since v1.3.0, under investigation).
-- DuckDB 1.1.3 (upgrade pending; newer releases natively support UTF-16
-  CSV and carry parser fixes).
+- DuckDB 1.1.3 — the newest **stable** duckdb-swift release; upstream
+  only publishes `v2.x-dev` tags after it, which `from:` versioning
+  correctly excludes. Upgrade waits on an upstream stable.
 
 ## Quality
 

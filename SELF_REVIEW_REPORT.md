@@ -411,7 +411,10 @@ Settings **⌘,** 指令 + Esc/Return 快捷；⌘F 守衛改 `hasLoadedFile`（
 standaloneManager×2、glob 檔名、目錄拒絕、maxRows clamp、tail-truncated×2、drop-final-record、tempFile guard、append shift token、locale 覆蓋。
 
 ## 遺留（未動）
-- AX menu-item flood（v1.3.0 既有，待查）
-- DuckDB 1.1.3 升級（1.4.x 原生 UTF-16 + parser 修補）
+- AX menu-item flood（v1.3.0 既有）：R6 量測為「穩定、不隨查詢增長」（fresh launch 243 menubars/44,693 items）；需乾淨帳號/重開機對照以分辨 AX server 累積註冊 vs 真實洩漏 — 無法盲修
+- DuckDB 1.1.3 升級：**上游已確認** duckdb-swift 最新 stable 即 v1.1.3（更新的 tag 全為 `-dev` pre-release，`from:` 語義不會選取）— 需待上游發版
 - `selectTab` userInfo index 來源仍僅限 app 內部 menu
-- 12 個 locale 對新鍵 fallback en（既定政策）
+
+## Round 7 補充（同日）
+- **15 語系 keyset 全對齊**：補 12 語系缺失的 4 鍵（`table.sort_*` + `csv.issue.*_tail`），`testAllShippedLocalesHaveIdenticalKeySets` 改為全 15 語系比對 — 原「12 locale fallback en」遺留項已關閉
+- Entitlements 已在簽名 binary 上驗證（sandbox + bookmarks + user-selected.rw）
